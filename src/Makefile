@@ -1,12 +1,12 @@
 #
-# OMNeT++/OMNEST Makefile for EventSimulator
+# OMNeT++/OMNEST Makefile for Resoursim
 #
 # This file was generated with the command:
 #  opp_makemake -f --deep
 #
 
 # Name of target to be created (-o option)
-TARGET = EventSimulator$(D)$(EXE_SUFFIX)
+TARGET = Resoursim$(D)$(EXE_SUFFIX)
 TARGET_DIR = .
 
 # User interface (uncomment one) (-u option)
