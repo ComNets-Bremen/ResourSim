@@ -1,0 +1,25 @@
+/*
+ * EventTypeDefinitions.h
+ *
+ *  Created on: Mar 20, 2018
+ *      Author: jd
+ */
+
+#ifndef EVENTTYPEDEFINITIONS_H_
+#define EVENTTYPEDEFINITIONS_H_
+
+enum EventType
+{
+    EVENT_TYPE_SCREEN,
+    EVENT_TYPE_BATTERY,
+    EVENT_TYPE_WIFI,
+    EVENT_TYPE_TRAFFIC,
+    EVENT_TYPE_CELLULAR,
+    EVENT_TYPE_AIRPLANE_MODE,
+    EVENT_TYPE_BLUETOOTH,
+    EVENT_TYPE_UNKNOWN = -1,
+};
+
+
+
+#endif /* EVENTTYPEDEFINITIONS_H_ */
