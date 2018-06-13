@@ -13,12 +13,47 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// TODO
+// - Be more generic in charging / discharging. Currently, only a replay is done.
+// - ...
+
 #include "SimplePercentageBattery.h"
 
 namespace eventsimulator {
+Define_Module(SimplePercentageBattery);
+
+void SimplePercentageBattery::handleMessage(cMessage *msg){
+    BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+    if (message->getPayloadType() != EVENT_TYPE_BATTERY){
+        // Not our message
+        delete msg;
+        return;
+    }
+
+    BatteryEventMessage *batMsg = check_and_cast<BatteryEventMessage *>(msg);
+
+    EV_INFO << "Got message! " << batMsg->str() << endl;
+    if (!initialized){
+        setBatteryPercentage(batMsg->getTheoreticalAbsolutePercentage());
+        initialized = true;
+    } else {
+        incrementalBatteryChange(batMsg->getPercentage());
+    }
+
+    // Valid?
+    if (!checkBatteryPercentageValid()){
+        EV_ERROR << "WRONG BATTERY VALUES: " << batteryPercentage << endl;
+    }
+
+    EV_INFO << "Delta: " << (batMsg->getTheoreticalAbsolutePercentage() - batteryPercentage) << endl;
+    //delete batMsg;
+    delete msg;
+
+}
 
 SimplePercentageBattery::SimplePercentageBattery() {
     batteryPercentage = 50.0f;
+    initialized = false;
 }
 
 SimplePercentageBattery::~SimplePercentageBattery() {
@@ -34,11 +69,22 @@ void SimplePercentageBattery::setBatteryPercentage(double percentage){
 }
 
 bool SimplePercentageBattery::checkBatteryPercentageValid(){
-    return (batteryPercentage < 100.0f && batteryPercentage > 0.0f);
+    return (batteryPercentage < 1.0f && batteryPercentage > 0.0f);
+}
+
+void SimplePercentageBattery::checkBattery(){
+    if (!checkBatteryPercentageValid()){
+        BatteryCriticalWarningMessage *msg = new BatteryCriticalWarningMessage();
+        msg->setCurrentBatteryLevel(batteryPercentage);
+        for (int i = 0; i<gateSize("out"); i++)
+            send(msg, "out", i);
+    }
 }
 
 void SimplePercentageBattery::incrementalBatteryChange(double percentage){
     batteryPercentage += percentage;
+    batteryPercentage = std::min(batteryPercentage, 1.0);
+    checkBattery();
 }
 
 bool SimplePercentageBattery::isInitialized(){
@@ -46,6 +92,7 @@ bool SimplePercentageBattery::isInitialized(){
 }
 
 void SimplePercentageBattery::initialize(){
+    EV_INFO << "Init battery" << endl;
     // TODO: Init?
     initialized = true;
 }

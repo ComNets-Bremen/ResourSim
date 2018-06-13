@@ -16,9 +16,16 @@
 #ifndef SIMPLEPERCENTAGEBATTERY_H_
 #define SIMPLEPERCENTAGEBATTERY_H_
 
+#include <omnetpp.h>
+#include <algorithm>
+#include "event_messages/EventMessages.h"
+#include "warning_messages/BatteryCriticalWarningMessage_m.h"
+
+using namespace omnetpp;
+
 namespace eventsimulator {
 
-class SimplePercentageBattery {
+class SimplePercentageBattery : public cSimpleModule {
 public:
     SimplePercentageBattery();
     virtual ~SimplePercentageBattery();
@@ -27,11 +34,15 @@ public:
     void setBatteryPercentage(double percentage);
 
     bool checkBatteryPercentageValid();
+    void checkBattery();
 
     void incrementalBatteryChange(double percentage);
 
     bool isInitialized();
     void initialize();
+
+protected:
+    virtual void handleMessage(cMessage *msg);
 
 private:
     double batteryPercentage;
