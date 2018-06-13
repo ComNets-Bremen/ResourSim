@@ -31,7 +31,7 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc, .msg and .sm files
 OBJS = \
-    $O/EventReceiver.o \
+    $O/EventManager.o \
     $O/PhoneEventInjector.o \
     $O/SimplePercentageBattery.o \
     $O/Txc.o \
@@ -42,7 +42,8 @@ OBJS = \
     $O/event_messages/CellularEventMessage_m.o \
     $O/event_messages/ScreenEventMessage_m.o \
     $O/event_messages/TrafficEventMessage_m.o \
-    $O/event_messages/WiFiEventMessage_m.o
+    $O/event_messages/WiFiEventMessage_m.o \
+    $O/warning_messages/BatteryCriticalWarningMessage_m.o
 
 # Message files
 MSGFILES = \
@@ -53,7 +54,8 @@ MSGFILES = \
     event_messages/CellularEventMessage.msg \
     event_messages/ScreenEventMessage.msg \
     event_messages/TrafficEventMessage.msg \
-    event_messages/WiFiEventMessage.msg
+    event_messages/WiFiEventMessage.msg \
+    warning_messages/BatteryCriticalWarningMessage.msg
 
 # SM files
 SMFILES =

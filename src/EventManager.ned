@@ -16,9 +16,10 @@
 package eventsimulator;
 
 //
-simple EventReceiver
+simple EventManager
 {
     parameters:
     gates:
         input in[];
+        output out[];
 }

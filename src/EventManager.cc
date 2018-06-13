@@ -13,18 +13,18 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "EventReceiver.h"
+#include "EventManager.h"
 
 namespace eventsimulator {
 
-Define_Module(EventReceiver);
+Define_Module(EventManager);
 
-void EventReceiver::initialize()
+void EventManager::initialize()
 {
     EV_INFO << "Started" << endl;
 }
 
-void EventReceiver::handleMessage(cMessage *msg)
+void EventManager::handleMessage(cMessage *msg)
 {
 
     BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
@@ -74,42 +74,44 @@ void EventReceiver::handleMessage(cMessage *msg)
 
 }
 
-void EventReceiver::handleScreenEvent(ScreenEventMessage *msg){
+void EventManager::handleScreenEvent(ScreenEventMessage *msg){
     EV_INFO << "@" << simTime() << " Screen Event: Screen on: " << msg->getScreenOn() << endl;
     delete msg;
 }
 
-void EventReceiver::handleBatteryEvent(BatteryEventMessage *msg){
+void EventManager::handleBatteryEvent(BatteryEventMessage *msg){
     EV_INFO << "@" << simTime() << " Battery Event: percentage: " << msg->getPercentage() << " chg_ac: " << msg->getChg_ac() << " chg_usb: " << msg->getChg_usb() << " chg_wireless: " << msg->getChg_wireless() << " is_charging: " << msg->getIs_charging() << " absPercentage: " << msg->getTheoreticalAbsolutePercentage() << endl;
-    delete msg;
+    for (int i = 0; i<gateSize("out"); i++ )
+        send(msg, "out", i);
+    //delete msg;
 }
 
-void EventReceiver::handleWiFiEvent(WiFiEventMessage *msg){
+void EventManager::handleWiFiEvent(WiFiEventMessage *msg){
     EV_INFO << "@" << simTime() << " WiFi Event: WiFi Status: " << getWiFiStatusString(msg->getWifi_status()) << endl;
     delete msg;
 }
 
-void EventReceiver::handleTrafficEvent(TrafficEventMessage *msg){
+void EventManager::handleTrafficEvent(TrafficEventMessage *msg){
     EV_INFO << "@" << simTime() << " Traffic Event: mobile_rx: " << msg->getMobile_rx() << " mobile_tx: " << msg->getMobile_tx() << " total_rx: " << msg->getTotal_rx() << " total_tx: " << msg->getTotal_tx() << endl;
     delete msg;
 }
 
-void EventReceiver::handleCellularEvent(CellularEventMessage *msg){
+void EventManager::handleCellularEvent(CellularEventMessage *msg){
     EV_INFO << "@" << simTime() << " Cellular Event: Cellular state: " << getCellularStateString(msg->getCellular_state()) << " type: " << msg->getCellular_type() << endl;
     delete msg;
 }
 
-void EventReceiver::handleAirplaneModeEvent(AirplaneModeEventMessage *msg){
+void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg){
     EV_INFO << "@" << simTime() << " Airplane Mode Event: airplane mode on: " << msg->getAirplaneModeOn() << endl;
     delete msg;
 }
 
-void EventReceiver::handleBluetoothEvent(BluetoothEventMessage *msg){
+void EventManager::handleBluetoothEvent(BluetoothEventMessage *msg){
     EV_INFO << "@" << simTime() << " Bluetooth Event: Bluetooth Status: " << getBluetoothStatusString(msg->getBluetooth_status()) << endl;
     delete msg;
 }
 
-void EventReceiver::handleUnknownEvent(BaseEventMessage *msg){
+void EventManager::handleUnknownEvent(BaseEventMessage *msg){
     EV_ERROR << "@" << simTime() << " Event is not defined!" << msg << endl;
     delete msg;
 }

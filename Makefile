@@ -1,12 +1,12 @@
 #
-# OMNeT++/OMNEST Makefile for OMNeT++
+# OMNeT++/OMNEST Makefile for Resoursim
 #
 # This file was generated with the command:
-#  opp_makemake --deep -f -M release
+#  opp_makemake -f --deep
 #
 
 # Name of target to be created (-o option)
-TARGET = OMNeT++$(D)$(EXE_SUFFIX)
+TARGET = Resoursim$(D)$(EXE_SUFFIX)
 TARGET_DIR = .
 
 # User interface (uncomment one) (-u option)
@@ -31,7 +31,7 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc, .msg and .sm files
 OBJS = \
-    $O/src/EventReceiver.o \
+    $O/src/EventManager.o \
     $O/src/PhoneEventInjector.o \
     $O/src/SimplePercentageBattery.o \
     $O/src/Txc.o \
@@ -42,7 +42,8 @@ OBJS = \
     $O/src/event_messages/CellularEventMessage_m.o \
     $O/src/event_messages/ScreenEventMessage_m.o \
     $O/src/event_messages/TrafficEventMessage_m.o \
-    $O/src/event_messages/WiFiEventMessage_m.o
+    $O/src/event_messages/WiFiEventMessage_m.o \
+    $O/src/warning_messages/BatteryCriticalWarningMessage_m.o
 
 # Message files
 MSGFILES = \
@@ -53,15 +54,11 @@ MSGFILES = \
     src/event_messages/CellularEventMessage.msg \
     src/event_messages/ScreenEventMessage.msg \
     src/event_messages/TrafficEventMessage.msg \
-    src/event_messages/WiFiEventMessage.msg
+    src/event_messages/WiFiEventMessage.msg \
+    src/warning_messages/BatteryCriticalWarningMessage.msg
 
 # SM files
 SMFILES =
-
-# Default mode (-M option); can be overridden with make MODE=debug (or =release)
-ifndef MODE
-MODE = release
-endif
 
 #------------------------------------------------------------------------------
 
@@ -130,7 +127,7 @@ $O/%.o: %.cc $(COPTS_FILE) | msgheaders smheaders
 
 %_m.cc %_m.h: %.msg
 	$(qecho) MSGC: $<
-	$(Q)$(MSGC) -s _m.cc $(MSGCOPTS) $?
+	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $@).d $(MSGCOPTS) $?
 
 %_sm.cc %_sm.h: %.sm
 	$(qecho) SMC: $<

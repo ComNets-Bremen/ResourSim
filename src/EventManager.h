@@ -13,21 +13,20 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef __EVENTSIMULATOR_EVENTRECEIVER_H
-#define __EVENTSIMULATOR_EVENTRECEIVER_H
+#ifndef __EVENTSIMULATOR_EVENTMANAGER_H
+#define __EVENTSIMULATOR_EVENTMANAGER_H
 
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
-#include "SimplePercentageBattery.h"
 
 using namespace omnetpp;
 
 namespace eventsimulator {
 
 /**
- * Implements a basic event receiver
+ * Implements a basic event manager
  */
-class EventReceiver : public cSimpleModule
+class EventManager : public cSimpleModule
 {
   protected:
     virtual void initialize();
@@ -43,10 +42,8 @@ class EventReceiver : public cSimpleModule
     void handleBluetoothEvent(BluetoothEventMessage *msg);
     void handleUnknownEvent(BaseEventMessage *msg);
 
-
-    SimplePercentageBattery battery;
 };
 
 }; // namespace
 
-#endif
+#endif // __EVENTSIMULATOR_EVENTMANAGER_H

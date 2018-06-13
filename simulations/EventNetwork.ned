@@ -16,16 +16,26 @@
 package eventsimulator.simulations;
 
 import eventsimulator.PhoneEventInjector;
-import eventsimulator.EventReceiver;
+import eventsimulator.EventManager;
+import eventsimulator.SimplePercentageBattery;
 
 //
 // Two instances (tic and toc) of Txc connected.
 //
 network EventNetwork
 {
+    @display("bgb=366,179");
     submodules:
-        injector[1] : PhoneEventInjector;
-        receiver[1] : EventReceiver;
+        injector[1]: PhoneEventInjector {
+            @display("p=40.26,107.05499");
+        }
+        manager[1]: EventManager {
+            @display("p=164,90");
+        }
+        battery[1]: SimplePercentageBattery {
+            @display("p=256,60");
+        }
     connections:
-        injector[0].out++ --> receiver[0].in++;
+        injector[0].out++ --> manager[0].in++;
+        manager[0].out++ --> battery[0].in++;
 }
