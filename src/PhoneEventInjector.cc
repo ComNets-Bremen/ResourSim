@@ -42,6 +42,30 @@ void PhoneEventInjector::initialize()
     if (xmlEvents == nullptr)
         throw cRuntimeError("No event xml file");
 
+    cXMLElementList paraList = xmlEvents->getElementsByTagName("parameters");
+    if (paraList.size()){
+        // We have a parameter element. Get the first one
+        cXMLElementList elements = paraList.at(0)->getChildren();
+        for (auto const& parameter:elements){
+
+            if(hasPar(parameter->getName())){
+                // Parameter exists, created by ned file
+                EV << "Skipping parameter " << parameter->getName() << endl;
+                continue;
+            } else {
+                EV << "Parameter: " << parameter->getName() << " value: " << parameter->getNodeValue()<< endl;
+                // TODO set simulation parameter programmatically
+            }
+        }
+    }
+    /*
+    if (paraList != nullptr){
+        EV << "ParaList" << battery_charge_min << endl;
+    } else {
+        EV << "ParaList nullptr" << endl;
+    }
+    */
+
     cXMLElementList allEvents = xmlEvents->getElementsByTagName("event");
 
     for (auto const& value:allEvents){
@@ -83,6 +107,7 @@ void PhoneEventInjector::initialize()
             msg->setMobile_tx(convertToLong(value->getAttribute("mobile_tx")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "BatteryStatus") == 0) {
+
             //EV_INFO << "Handling " << eventType << "..." << endl;
             BatteryEventMessage *msg = new BatteryEventMessage(eventType);
             msg->setPercentage(convertToDouble(value->getAttribute("delta_percentage")));
