@@ -14,8 +14,8 @@
 // 
 
 // TODO
-// - Be more generic in charging / discharging. Currently, only a replay is done.
-// - ...
+// - Be more generic in charging / discharging. Currently, only the mean values are used
+// - Mean values do not fit to the real characteristics. Be more generic
 
 #include "SimplePercentageBattery.h"
 
@@ -32,12 +32,28 @@ void SimplePercentageBattery::handleMessage(cMessage *msg){
 
     BatteryEventMessage *batMsg = check_and_cast<BatteryEventMessage *>(msg);
 
+    simtime_t curTime = simTime().dbl();
+
+    expectedBatteryPercentage = batMsg->getTheoreticalAbsolutePercentage();
+
     EV_INFO << "Got message! " << batMsg->str() << endl;
     if (!initialized){
         setBatteryPercentage(batMsg->getTheoreticalAbsolutePercentage());
+        lastBatteryEventTime = curTime;
         initialized = true;
-    } else {
-        incrementalBatteryChange(batMsg->getPercentage());
+    }
+
+    if (lastBatteryEventTime != curTime){
+        double timedelta = (curTime - lastBatteryEventTime).dbl(); // in seconds
+        if (batMsg->getIs_charging()){
+            double deltaPercent = par("chargePerHour").doubleValue() * timedelta / 3600.0;
+            EV_INFO << "Charge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
+            incrementalBatteryChange(deltaPercent);
+        } else {
+            double deltaPercent = par("dischargePerHour").doubleValue() * timedelta / 3600.0;
+            EV_INFO << "Discharge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
+            incrementalBatteryChange(deltaPercent);
+        }
     }
 
     // Valid?
@@ -49,11 +65,25 @@ void SimplePercentageBattery::handleMessage(cMessage *msg){
     //delete batMsg;
     delete msg;
 
+    // Collect data for statistical analysis
+    batteryPercentageValues.record(batteryPercentage);
+    expectedBatteryPercentageValues.record(expectedBatteryPercentage);
+    batteryPercentageDelta.record(expectedBatteryPercentage - batteryPercentage);
+
+
+    lastBatteryEventTime = curTime;
+
 }
 
 SimplePercentageBattery::SimplePercentageBattery() {
-    batteryPercentage = 50.0f;
+    batteryPercentage = 0.5;
+    expectedBatteryPercentage = 0.5;
+    lastBatteryEventTime = 0.0;
     initialized = false;
+
+    batteryPercentageValues.setName("Calculated battery percentage");
+    expectedBatteryPercentageValues.setName("Expected battery percentage");
+    batteryPercentageDelta.setName("Delta between expected and calculated battery percentage");
 }
 
 SimplePercentageBattery::~SimplePercentageBattery() {
@@ -74,16 +104,21 @@ bool SimplePercentageBattery::checkBatteryPercentageValid(){
 
 void SimplePercentageBattery::checkBattery(){
     if (!checkBatteryPercentageValid()){
-        BatteryCriticalWarningMessage *msg = new BatteryCriticalWarningMessage();
-        msg->setCurrentBatteryLevel(batteryPercentage);
-        for (int i = 0; i<gateSize("out"); i++)
+        // TODO: more checks?
+        for (int i = 0; i<gateSize("out"); i++){
+            BatteryCriticalWarningMessage *msg = new BatteryCriticalWarningMessage();
+            msg->setCurrentBatteryLevel(batteryPercentage);
             send(msg, "out", i);
+        }
+
     }
 }
 
 void SimplePercentageBattery::incrementalBatteryChange(double percentage){
     batteryPercentage += percentage;
     batteryPercentage = std::min(batteryPercentage, 1.0);
+    batteryPercentage = std::max(batteryPercentage, 0.0);
+    // TODO: Handle zero, inform that the simulation should end / stop
     checkBattery();
 }
 
@@ -95,6 +130,16 @@ void SimplePercentageBattery::initialize(){
     EV_INFO << "Init battery" << endl;
     // TODO: Init?
     initialized = true;
+}
+
+void SimplePercentageBattery::refreshDisplay() const{
+    char buf [40];
+    sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage*100.0, expectedBatteryPercentage*100.0);
+    getDisplayString().setTagArg("t", 0, buf);
+}
+
+void SimplePercentageBattery::finish(){
+
 }
 
 } /* namespace eventsimulator */

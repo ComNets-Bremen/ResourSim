@@ -41,12 +41,22 @@ public:
     bool isInitialized();
     void initialize();
 
+    void refreshDisplay() const;
+    void finish();
+
 protected:
     virtual void handleMessage(cMessage *msg);
 
 private:
     double batteryPercentage;
+    double expectedBatteryPercentage;
+
+    cOutVector batteryPercentageValues;
+    cOutVector expectedBatteryPercentageValues;
+    cOutVector batteryPercentageDelta;
+
     bool initialized;
+    simtime_t lastBatteryEventTime;
 };
 
 } /* namespace eventsimulator */
