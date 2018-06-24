@@ -19,6 +19,7 @@ package eventsimulator;
 simple EventManager
 {
     parameters:
+        @display("i=block/dispatch");
     gates:
         input in[];
         output out[];
