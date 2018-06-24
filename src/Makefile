@@ -34,6 +34,7 @@ OBJS = \
     $O/EventManager.o \
     $O/PhoneEventInjector.o \
     $O/SimplePercentageBattery.o \
+    $O/SimpleScreen.o \
     $O/Txc.o \
     $O/event_messages/AirplaneModeEventMessage_m.o \
     $O/event_messages/BaseEventMessage_m.o \

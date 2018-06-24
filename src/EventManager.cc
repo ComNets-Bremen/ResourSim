@@ -76,14 +76,16 @@ void EventManager::handleMessage(cMessage *msg)
 
 void EventManager::handleScreenEvent(ScreenEventMessage *msg){
     EV_INFO << "@" << simTime() << " Screen Event: Screen on: " << msg->getScreenOn() << endl;
+    for (int i = 0; i<gateSize("out"); i++)
+        send(msg->dup(), "out", i);
     delete msg;
 }
 
 void EventManager::handleBatteryEvent(BatteryEventMessage *msg){
     EV_INFO << "@" << simTime() << " Battery Event: percentage: " << msg->getPercentage() << " chg_ac: " << msg->getChg_ac() << " chg_usb: " << msg->getChg_usb() << " chg_wireless: " << msg->getChg_wireless() << " is_charging: " << msg->getIs_charging() << " absPercentage: " << msg->getTheoreticalAbsolutePercentage() << endl;
     for (int i = 0; i<gateSize("out"); i++ )
-        send(msg, "out", i);
-    //delete msg;
+        send(msg->dup(), "out", i);
+    delete msg;
 }
 
 void EventManager::handleWiFiEvent(WiFiEventMessage *msg){
