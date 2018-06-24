@@ -31,4 +31,14 @@
 *.swp
 out
 
+.qtenvrc
+
+# Binaries
 OMNeT++
+Resoursim
+
+# Analysis
+*.anf
+
+#results
+results
