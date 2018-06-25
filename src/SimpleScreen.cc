@@ -53,6 +53,11 @@ void SimpleScreen::refreshDisplay() const{
     char buf [40];
     sprintf(buf, "Screen on: %i", screenOn);
     getDisplayString().setTagArg("t", 0, buf);
+
+    if (screenOn)
+        getDisplayString().setTagArg("i", 0, "status/screen_on");
+    else
+        getDisplayString().setTagArg("i", 0, "status/screen_off");
 }
 
 } //namespace

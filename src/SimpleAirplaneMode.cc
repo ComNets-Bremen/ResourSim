@@ -53,6 +53,11 @@ void SimpleAirplaneMode::refreshDisplay() const{
     char buf [40];
     sprintf(buf,"Airplane mode active: %i", airplaneModeOn);
     getDisplayString().setTagArg("t", 0, buf);
+
+    if (airplaneModeOn)
+        getDisplayString().setTagArg("i", 0, "status/airplane_mode_red");
+    else
+        getDisplayString().setTagArg("i", 0, "status/airplane_mode_neutral");
 }
 
 } // namespace
