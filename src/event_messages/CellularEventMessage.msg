@@ -27,7 +27,7 @@ cplusplus {{
     };
 
 	// Return the Cellular state as a string from the enum
-    inline std::string getCellularStateString(CellularStateCode code){
+    static inline std::string getCellularStatusString(CellularStateCode code){
         std::map<CellularStateCode, std::string> CellularStateCodeMap = {
             {CELLULAR_UNKNOWN, "CELLULAR_UNKNOWN"},
             {CELLULAR_CONNECTED, "CELLULAR_CONNECTED"},
@@ -39,8 +39,8 @@ cplusplus {{
     }
     
     // Return the Cellular state as a string from an int
-    inline std::string getCellularStateString(int code){
-        return getCellularStateString(static_cast<CellularStateCode>(code));
+    static inline std::string getCellularStatusString(int code){
+        return getCellularStatusString(static_cast<CellularStateCode>(code));
     }
 }}
 message BaseEventMessage;

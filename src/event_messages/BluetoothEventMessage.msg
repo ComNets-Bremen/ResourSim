@@ -25,7 +25,7 @@ cplusplus {{
     };
 
 	// Return the Bluetooth status as a string from the enum
-    inline std::string getBluetoothStatusString(BluetoothStatusCode code){
+    static inline std::string getBluetoothStatusString(BluetoothStatusCode code){
         std::map<BluetoothStatusCode, std::string> BluetoothStatusCodeMap = {
             {BLUETOOTH_STATE_ON, "BLUETOOTH_STATE_ON"},
             {BLUETOOTH_STATE_OFF, "BLUETOOTH_STATE_OFF"},
@@ -36,7 +36,7 @@ cplusplus {{
     }
     
     // Return the Bluetooth status as a string from an int
-    inline std::string getBluetoothStatusString(int code){
+    static inline std::string getBluetoothStatusString(int code){
         return getBluetoothStatusString(static_cast<BluetoothStatusCode>(code));
     }
 }}
