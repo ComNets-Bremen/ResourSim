@@ -134,7 +134,10 @@ void SimplePercentageBattery::initialize(){
 
 void SimplePercentageBattery::refreshDisplay() const{
     char buf [40];
-    sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage*100.0, expectedBatteryPercentage*100.0);
+    if (par("detailedStatus"))
+            sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage*100.0, expectedBatteryPercentage*100.0);
+    else
+        sprintf(buf, "Value: %.2f%%", batteryPercentage*100.0);
     getDisplayString().setTagArg("t", 0, buf);
 }
 

@@ -22,6 +22,7 @@ simple SimplePercentageBattery
         // Median values, taken from real data. Replace by distributions for more realistic values
         volatile double chargePerHour = default(0.6563156064077952);		// percent per hour
         volatile double dischargePerHour = default(-0.12693461937441633);	// percent per hour
+        volatile bool detailedStatus = default(false);						// Show more details for the battery
         @display("i=status/battery_neutral");
     gates:
         input in[];
