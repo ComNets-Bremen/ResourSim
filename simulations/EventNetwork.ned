@@ -21,35 +21,52 @@ import eventsimulator.SimplePercentageBattery;
 import eventsimulator.SimpleScreen;
 import eventsimulator.SimpleAirplaneMode;
 import eventsimulator.SimpleWiFi;
+import eventsimulator.SimpleCellular;
+import eventsimulator.SimpleBluetooth;
 
 
 network EventNetwork
 {
-    @display("bgb=606,470");
+    @display("bgb=546,382");
     submodules:
         userEventInjector[1]: PhoneEventInjector {
-            @display("p=82,46");
+            @display("p=79,47");
         }
+
         manager[1]: EventManager {
-            @display("p=277,169");
+            @display("p=286,169");
         }
+
         battery[1]: SimplePercentageBattery {
             @display("p=483,186");
         }
-        screen[1]: SimpleScreen {
-            @display("p=286,40");
-        }
-        airplane[1]: SimpleAirplaneMode {
-            @display("p=385,326");
-        }
-        wifi[1]: SimpleWiFi {
 
-            @display("p=179,310");
+        screen[1]: SimpleScreen {
+            @display("p=286,47");
         }
+
+        airplane[1]: SimpleAirplaneMode {
+            @display("p=428,277");
+        }
+
+        wifi[1]: SimpleWiFi {
+            @display("p=286,310");
+        }
+
+        cellular[1]: SimpleCellular {
+            @display("p=460,85");
+        }
+
+        bluetooth[1]: SimpleBluetooth {
+            @display("p=148,277");
+        }
+
     connections:
         userEventInjector[0].out++ --> manager[0].in++;
         manager[0].out++ --> battery[0].in++;
         manager[0].out++ --> screen[0].in++;
         manager[0].out++ --> airplane[0].in++;
         manager[0].out++ --> wifi[0].in++;
+        manager[0].out++ --> cellular[0].in++;
+        manager[0].out++ --> bluetooth[0].in++;
 }
