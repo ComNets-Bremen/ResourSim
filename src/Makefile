@@ -33,6 +33,7 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 OBJS = \
     $O/EventManager.o \
     $O/PhoneEventInjector.o \
+    $O/SimpleAirplaneMode.o \
     $O/SimplePercentageBattery.o \
     $O/SimpleScreen.o \
     $O/Txc.o \

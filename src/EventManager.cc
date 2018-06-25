@@ -105,6 +105,8 @@ void EventManager::handleCellularEvent(CellularEventMessage *msg){
 
 void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg){
     EV_INFO << "@" << simTime() << " Airplane Mode Event: airplane mode on: " << msg->getAirplaneModeOn() << endl;
+    for (int i = 0; i<gateSize("out"); i++)
+        send(msg->dup(), "out", i);
     delete msg;
 }
 

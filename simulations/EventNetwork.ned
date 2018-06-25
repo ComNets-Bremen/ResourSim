@@ -19,26 +19,31 @@ import eventsimulator.PhoneEventInjector;
 import eventsimulator.EventManager;
 import eventsimulator.SimplePercentageBattery;
 import eventsimulator.SimpleScreen;
+import eventsimulator.SimpleAirplaneMode;
 
 
 network EventNetwork
 {
-    @display("bgb=366,179");
+    @display("bgb=380.63998,329.4");
     submodules:
         injector[1]: PhoneEventInjector {
             @display("p=40.26,107.05499");
         }
         manager[1]: EventManager {
-            @display("p=164,90");
+            @display("p=163.78499,107.05499");
         }
         battery[1]: SimplePercentageBattery {
-            @display("p=256,60");
+            @display("p=286.395,107.05499");
         }
         screen[1]: SimpleScreen {
             @display("p=163.78499,23.789999");
+        }
+        airplane[1]: SimpleAirplaneMode {
+            @display("p=163.78499,249.79498");
         }
     connections:
         injector[0].out++ --> manager[0].in++;
         manager[0].out++ --> battery[0].in++;
         manager[0].out++ --> screen[0].in++;
+        manager[0].out++ --> airplane[0].in++;
 }
