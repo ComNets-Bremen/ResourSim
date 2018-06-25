@@ -14,7 +14,7 @@
 // 
 
 // TODO: Implement the following:
-// WIFI, Cellular, Bluetooth
+// background service injector
 // Can be neglected for the first step: unknown, traffic
 
 #include "EventManager.h"
@@ -106,6 +106,8 @@ void EventManager::handleTrafficEvent(TrafficEventMessage *msg){
 
 void EventManager::handleCellularEvent(CellularEventMessage *msg){
     EV_INFO << "@" << simTime() << " Cellular Event: Cellular state: " << getCellularStateString(msg->getCellular_state()) << " type: " << msg->getCellular_type() << endl;
+    for (int i = 0; i<gateSize("out"); i++)
+        send(msg->dup(), "out", i);
     delete msg;
 }
 
@@ -118,6 +120,8 @@ void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg){
 
 void EventManager::handleBluetoothEvent(BluetoothEventMessage *msg){
     EV_INFO << "@" << simTime() << " Bluetooth Event: Bluetooth Status: " << getBluetoothStatusString(msg->getBluetooth_status()) << endl;
+    for (int i = 0; i<gateSize("out"); i++)
+        send(msg->dup(), "out", i);
     delete msg;
 }
 
