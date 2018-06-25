@@ -34,6 +34,8 @@ OBJS = \
     $O/EventManager.o \
     $O/PhoneEventInjector.o \
     $O/SimpleAirplaneMode.o \
+    $O/SimpleBluetooth.o \
+    $O/SimpleCellular.o \
     $O/SimplePercentageBattery.o \
     $O/SimpleScreen.o \
     $O/SimpleWiFi.o \
