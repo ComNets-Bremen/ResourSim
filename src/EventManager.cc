@@ -13,6 +13,10 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// TODO: Implement the following:
+// WIFI, Cellular, Bluetooth
+// Can be neglected for the first step: unknown, traffic
+
 #include "EventManager.h"
 
 namespace eventsimulator {
@@ -90,6 +94,8 @@ void EventManager::handleBatteryEvent(BatteryEventMessage *msg){
 
 void EventManager::handleWiFiEvent(WiFiEventMessage *msg){
     EV_INFO << "@" << simTime() << " WiFi Event: WiFi Status: " << getWiFiStatusString(msg->getWifi_status()) << endl;
+    for (int i = 0; i<gateSize("out"); i++)
+        send(msg->dup(), "out", i);
     delete msg;
 }
 

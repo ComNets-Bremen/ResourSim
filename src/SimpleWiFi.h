@@ -13,17 +13,38 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package eventsimulator;
+#ifndef __RESOURSIM_SIMPLEWIFI_H_
+#define __RESOURSIM_SIMPLEWIFI_H_
 
-//
-// Immediately sends out any message it receives. It can optionally generate
-// a message at the beginning of the simulation, to bootstrap the process.
-//
-simple PhoneEventInjector
+#include <omnetpp.h>
+#include "event_messages/EventMessages.h"
+
+using namespace omnetpp;
+
+namespace eventsimulator {
+
+/**
+ * TODO - Generated class
+ */
+class SimpleWiFi : public cSimpleModule
 {
-    parameters:
-        xml eventFilename = xmldoc("long.xml");
-        @display("i=status/injector");
-    gates:
-        output out[] @loose;
-}
+  public:
+    SimpleWiFi();
+    ~SimpleWiFi();
+
+    void refreshDisplay() const;
+
+  protected:
+    virtual void initialize();
+    virtual void handleMessage(cMessage *msg);
+
+  private:
+    bool initialized = false;
+    int wifiStatus;
+    bool wifiIsUsed = false;
+    cOutVector wifiStatusValues;
+};
+
+} //namespace
+
+#endif

@@ -33,7 +33,7 @@ cplusplus {{
     };
 
 	// Return the WiFi status as a string from the enum
-    inline std::string getWiFiStatusString(WiFiStatusCode code){
+    static inline std::string getWiFiStatusString(WiFiStatusCode code){
         std::map<WiFiStatusCode, std::string> WiFiStatusCodeMap = {
                 {WIFI_AUTHENTICATING, "WIFI_AUTHENTICATING"},
                 {WIFI_BLOCKED, "WIFI_BLOCKED"},
@@ -52,7 +52,7 @@ cplusplus {{
     }
     
     // Return the WiFi status as a string from an int
-    inline std::string getWiFiStatusString(int code){
+    static inline std::string getWiFiStatusString(int code){
         return getWiFiStatusString(static_cast<WiFiStatusCode>(code));
     }
 }}

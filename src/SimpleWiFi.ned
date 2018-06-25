@@ -16,14 +16,12 @@
 package eventsimulator;
 
 //
-// Immediately sends out any message it receives. It can optionally generate
-// a message at the beginning of the simulation, to bootstrap the process.
+// TODO auto-generated module
 //
-simple PhoneEventInjector
+simple SimpleWiFi
 {
-    parameters:
-        xml eventFilename = xmldoc("long.xml");
-        @display("i=status/injector");
+    @display("i=status/wifi_neutral");
     gates:
-        output out[] @loose;
+        input in[];
+        output out[];
 }
