@@ -20,7 +20,7 @@ namespace eventsimulator {
 Define_Module(SimpleBluetooth);
 
 SimpleBluetooth::SimpleBluetooth(){
-    bluetoothStatusValues.setName("WiFi Status");
+    bluetoothStatusValues.setName("Bluetooth Status");
 }
 
 SimpleBluetooth::~SimpleBluetooth(){

@@ -20,7 +20,7 @@ namespace eventsimulator {
 Define_Module(SimpleCellular);
 
 SimpleCellular::SimpleCellular(){
-    cellularStatusValues.setName("WiFi Status");
+    cellularStatusValues.setName("Cellular Status");
 }
 
 SimpleCellular::~SimpleCellular(){
