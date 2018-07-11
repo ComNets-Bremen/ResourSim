@@ -46,11 +46,12 @@ void SimplePercentageBattery::handleMessage(cMessage *msg){
     if (lastBatteryEventTime != curTime){
         double timedelta = (curTime - lastBatteryEventTime).dbl(); // in seconds
         if (batMsg->getIs_charging()){
-            double deltaPercent = par("chargePerHour").doubleValue() * timedelta / 3600.0;
+            double deltaPercent = getClosestValue(batteryPercentage, chargePerHourArray) * timedelta / 3600.0;
             EV_INFO << "Charge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
             incrementalBatteryChange(deltaPercent);
         } else {
-            double deltaPercent = par("dischargePerHour").doubleValue() * timedelta / 3600.0;
+            //double deltaPercent = par("dischargePerHour").doubleValue() * timedelta / 3600.0;
+            double deltaPercent = getClosestValue(batteryPercentage, dischargePerHourArray) * timedelta / 3600.0;
             EV_INFO << "Discharge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
             incrementalBatteryChange(deltaPercent);
         }
@@ -130,6 +131,53 @@ void SimplePercentageBattery::initialize(){
     EV_INFO << "Init battery" << endl;
     // TODO: Init?
     initialized = true;
+
+    // Add charging values
+    const char *chargePerHourChar = par("chargePerHourArray");
+    addToMap(chargePerHourChar, chargePerHourArray);
+    EV_INFO << "Charging Values: " << chargePerHourArray.size() << endl;
+
+    // Add discharging values
+    const char *dischargePerHourChar = par("dischargePerHourArray");
+    addToMap(dischargePerHourChar, dischargePerHourArray);
+    EV_INFO << "Discharging Values: " << dischargePerHourArray.size() << endl;
+
+    //EV_INFO << "#### " << getClosestValue(33, dischargePerHourArray) << endl;
+    //EV_INFO << "#### " << getClosestValue(33, chargePerHourArray) << endl;
+}
+
+void SimplePercentageBattery::addToMap(const char *str, std::map<int, float> &m) {
+    cStringTokenizer tokenizer(str, ",");
+    while(tokenizer.hasMoreTokens()){
+        std::string t = tokenizer.nextToken();
+        int pos = t.find(":");
+        if (pos < 1 ){
+            EV_ERROR << "Invalid array!" << endl;
+        } else {
+            int key = std::stoi(t.substr(0, pos));
+            float value = std::stof(t.substr(pos+1, t.size()-1));
+
+            //EV_INFO << "Adding value to array: " << key << ": " << value <<  endl;
+            m[key] = value;
+        }
+    }
+}
+
+float SimplePercentageBattery::getClosestValue(float value, std::map<int, float> &m){
+
+    int roundedValue = (int)std::round(value*100.0);
+
+    int closestKey = m.begin()->first;
+    float closestValue = m.begin()->second;
+
+    for (auto const& v : m){
+        if (abs(roundedValue - closestKey) > abs(roundedValue - v.first)){
+            closestKey = v.first;
+            closestValue = v.second;
+        }
+    }
+    return closestValue;
+
 }
 
 void SimplePercentageBattery::refreshDisplay() const{

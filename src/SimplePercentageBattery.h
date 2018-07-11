@@ -48,6 +48,31 @@ protected:
     virtual void handleMessage(cMessage *msg);
 
 private:
+    /**
+     * Splits a *char in the format "<int>key:<float>value, ..." and adds the values to a map<int, float>
+     *
+     * The int value represents the percentage as an integer (i.e. 50 for 50%), the float
+     * represents the average change at this level as a float (i.e. 0.4 for 40% per hour)
+     *
+     * @param *str   : The *char
+     * @param &m     : The map
+     */
+    void addToMap(const char *str, std::map<int, float> &m);
+
+    /**
+     * Get the closest float value for a certain int from a map<int, float>.
+     *
+     * The int value represents the percentage as an integer (i.e. 50 for 50%), the float
+     * represents the average change at this level as a float (i.e. 0.4 for 40% per hour)
+     *
+     * @param value     : The value in percent, i.e. 0.5 for 50%
+     * @param &m        : The map
+     */
+    float getClosestValue(float value, std::map<int, float> &m);
+
+    std::map<int,float> chargePerHourArray;
+    std::map<int,float> dischargePerHourArray;
+
     double batteryPercentage;
     double expectedBatteryPercentage;
 
