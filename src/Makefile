@@ -31,6 +31,8 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 
 # Object files for local .cc, .msg and .sm files
 OBJS = \
+    $O/BackgroundEventContainer.o \
+    $O/BackgroundServiceInjector.o \
     $O/EventManager.o \
     $O/PhoneEventInjector.o \
     $O/SimpleAirplaneMode.o \
@@ -40,6 +42,7 @@ OBJS = \
     $O/SimpleScreen.o \
     $O/SimpleWiFi.o \
     $O/Txc.o \
+    $O/background_messages/BackgroundEventMessage_m.o \
     $O/event_messages/AirplaneModeEventMessage_m.o \
     $O/event_messages/BaseEventMessage_m.o \
     $O/event_messages/BatteryEventMessage_m.o \
@@ -52,6 +55,7 @@ OBJS = \
 
 # Message files
 MSGFILES = \
+    background_messages/BackgroundEventMessage.msg \
     event_messages/AirplaneModeEventMessage.msg \
     event_messages/BaseEventMessage.msg \
     event_messages/BatteryEventMessage.msg \
