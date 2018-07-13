@@ -41,28 +41,59 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             delete msg;
             return;
         }
+
+        if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND){
+            EV_INFO << "Collision Background" << endl;
+            collisionUser++;
+            delete msg;
+            return;
+        }
+
         WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
+
         wifiStatus = wifiMsg->getWifi_status();
         wifiStatusValues.record(wifiStatus);
 
         switch (wifiStatus) {
-        // TODO: Check if all offers internet connectivity
+        // TODO: Check if all states offer (kind of) Internet connectivity
         case WIFI_CONNECTING:
         case WIFI_CONNECTED:
         case WIFI_AUTHENTICATING:
         case WIFI_OBTAINING_IPADDR:
         case WIFI_VERIFYING_POOR_LINK:
-            wifiIsUsed = true;
+            deviceState = DEVICE_STATE_OCCUPIED_USER;
             break;
         default:
-            wifiIsUsed = false;
+            deviceState = DEVICE_STATE_FREE;
         }
         // TODO: Check if transition is valid?
 
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         EV_INFO << "Background Message" << endl;
-        // TODO implement
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
+                BackgroundEventMessage *>(msg);
+        if (backgroundEventMessage->getBackgroundType()
+                == BACKGROUND_EVENT_TYPE_WIFI) {
+
+            if ((deviceState == DEVICE_STATE_FREE)
+                    or (deviceState == DEVICE_STATE_UNKNOWN)) {
+                deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+                backgroundServiceEndMessage = new cMessage(
+                        "End Background Service");
+                scheduleAt(simTime() + backgroundEventMessage->getDuration(), backgroundServiceEndMessage);
+            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND){
+                EV_INFO << "self collision" << endl;
+                collisionSelf++;
+            } else {
+                collisionBackground++;
+            }
+
+        }
+        delete msg;
+    } else if (msg == backgroundServiceEndMessage) {
+        EV_INFO << "End background service" << endl;
+        deviceState = DEVICE_STATE_FREE;
         delete msg;
     } else {
         EV_ERROR << "Unhandled message" << endl;
@@ -75,10 +106,16 @@ void SimpleWiFi::refreshDisplay() const {
     char buf[40];
     sprintf(buf, "WiFi status: %s", getWiFiStatusString(wifiStatus).c_str());
     getDisplayString().setTagArg("t", 0, buf);
-    if (wifiIsUsed)
+    if (deviceState == DEVICE_STATE_OCCUPIED_USER || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND)
         getDisplayString().setTagArg("i", 0, "status/wifi_green");
     else
         getDisplayString().setTagArg("i", 0, "status/wifi_neutral");
+}
+
+void SimpleWiFi::finish() {
+    recordScalar("#collisionUser", collisionUser);
+    recordScalar("#collisionBackground", collisionBackground);
+    recordScalar("#collisionSelf", collisionSelf);
 }
 
 } //namespace

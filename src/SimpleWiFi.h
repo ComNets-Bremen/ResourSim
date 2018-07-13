@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "DeviceStates.h"
 
 using namespace omnetpp;
 
@@ -35,6 +36,8 @@ class SimpleWiFi : public cSimpleModule
 
     void refreshDisplay() const;
 
+    void finish();
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
@@ -42,8 +45,18 @@ class SimpleWiFi : public cSimpleModule
   private:
     bool initialized = false;
     int wifiStatus;
-    bool wifiIsUsed = false;
+
+    DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
+
+    cMessage *backgroundServiceEndMessage;
+
+    // Statistics
+
     cOutVector wifiStatusValues;
+
+    long collisionBackground = 0;
+    long collisionUser = 0;
+    long collisionSelf = 0;
 };
 
 } //namespace
