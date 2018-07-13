@@ -79,13 +79,13 @@ void SimplePercentageBattery::handleMessage(cMessage *msg) {
         // Collect data for statistical analysis
         batteryPercentageValues.record(batteryPercentage);
         expectedBatteryPercentageValues.record(expectedBatteryPercentage);
-        batteryPercentageDelta.record(
-                expectedBatteryPercentage - batteryPercentage);
+        batteryPercentageDelta.record(std::sqrt(std::abs(std::pow(expectedBatteryPercentage, 2) - std::pow(batteryPercentage, 2))));
+
 
         lastBatteryEventTime = curTime;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         EV_INFO << "Background Message" << endl;
-        // TODO: Handly
+        // TODO: Handle
         delete msg;
     } else {
         EV_ERROR << "Unknown message type" << endl;
