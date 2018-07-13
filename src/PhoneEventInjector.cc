@@ -217,10 +217,10 @@ void PhoneEventInjector::handleMessage(cMessage *msg) {
 
     if (msg == cancelSimulationMessage) {
         EV_INFO << "Simulation stop requested" << endl;
+        delete msg;
         // Stop the simulation
         endSimulation();
 
-        delete msg;
         return;
     }
     EV_INFO << "MSG to out" << endl;
