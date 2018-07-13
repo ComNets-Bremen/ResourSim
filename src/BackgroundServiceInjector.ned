@@ -16,20 +16,27 @@
 package eventsimulator;
 
 //
-// TODO auto-generated module
+// Module which inject background service events
 //
 simple BackgroundServiceInjector
 {
     parameters:
         @display("i=status/background-injector");
-        int numBackgroundEvents = 1;
+        int numBackgroundEvents = 2;
 
+		// One service mimics the WiFi usage for WiFi
         volatile double backgroundEvent0_start @unit("s") 		= default(1s);
-        volatile double backgroundEvent0_stop @unit("s") 		= default(200s);  // TODO: not used at the moment
-        volatile double backgroundEvent0_repetition @unit("s") 	= uniform(5s, 400s);
-        volatile double backgroundEvent0_duration @unit("s")	= truncnormal(5s, 10s);
+        volatile double backgroundEvent0_stop @unit("s") 		= default(200s);  // TODO: currently not used
+        volatile double backgroundEvent0_repetition @unit("s") 	= default(uniform(550s, 650s));
+        volatile double backgroundEvent0_duration @unit("s")	= default(truncnormal(2s, 10s));
         string backgroundEvent0_type @enum(BACKGROUND_EVENT_TYPE_CPU,BACKGROUND_EVENT_TYPE_WIFI,BACKGROUND_EVENT_TYPE_CELLULAR,BACKGROUND_EVENT_TYPE_BLUETOOTH) = default("BACKGROUND_EVENT_TYPE_WIFI");
 
+		// One service processes data in the background
+		volatile double backgroundEvent1_start @unit("s") 		= default(1s);
+        volatile double backgroundEvent1_stop @unit("s") 		= default(200s);  // TODO: currently not used
+        volatile double backgroundEvent1_repetition @unit("s") 	= default(normal(3600s, 60s));
+        volatile double backgroundEvent1_duration @unit("s")	= default(truncnormal(2s, 5s));
+        string backgroundEvent1_type @enum(BACKGROUND_EVENT_TYPE_CPU,BACKGROUND_EVENT_TYPE_WIFI,BACKGROUND_EVENT_TYPE_CELLULAR,BACKGROUND_EVENT_TYPE_BLUETOOTH) = default("BACKGROUND_EVENT_TYPE_CPU");
     gates:
         output out[] @loose;
 }
