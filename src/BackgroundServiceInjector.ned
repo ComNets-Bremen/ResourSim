@@ -22,7 +22,7 @@ simple BackgroundServiceInjector
 {
     parameters:
         @display("i=status/background-injector");
-        int numBackgroundEvents = 2;
+        int numBackgroundEvents = default(2);
 
 		// One service mimics the WiFi usage for WiFi
         volatile double backgroundEvent0_start @unit("s") 		= default(1s);
