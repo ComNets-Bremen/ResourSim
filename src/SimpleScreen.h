@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "DeviceStates.h"
 
 using namespace omnetpp;
 
@@ -31,6 +32,7 @@ class SimpleScreen : public cSimpleModule
     virtual ~SimpleScreen();
 
     void refreshDisplay() const;
+    void finish();
 
   protected:
     virtual void initialize();
@@ -40,6 +42,18 @@ class SimpleScreen : public cSimpleModule
   private:
     bool initialized = false;
     bool screenOn = false;
+
+    // We assume the screen as an indicator if the device is actively being used.
+    // The user should not face problems due to an (uninterruptible) task running in the background
+    // So the screen status corresponds more to the CPU usage than the actual screen usage.
+    DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
+    cMessage *backgroundServiceEndMessage;
+
+    // statistics
+    long collisionBackground = 0;
+    long collisionUser = 0;
+    long collisionSelf = 0;
+
     cOutVector screenStatusValues;
 };
 

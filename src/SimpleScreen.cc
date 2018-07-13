@@ -19,38 +19,73 @@ namespace eventsimulator {
 
 Define_Module(SimpleScreen);
 
-SimpleScreen::SimpleScreen(){
+SimpleScreen::SimpleScreen() {
     screenStatusValues.setName("Screen Status");
 }
 
-SimpleScreen::~SimpleScreen(){
+SimpleScreen::~SimpleScreen() {
 
 }
 
-void SimpleScreen::initialize()
-{
+void SimpleScreen::initialize() {
     EV_INFO << "Init screen" << endl;
     // TODO: Init?
     initialized = true;
 }
 
-void SimpleScreen::handleMessage(cMessage *msg)
-{
-    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr){
-    BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
-    if (message->getPayloadType() != EVENT_TYPE_SCREEN){
-        // Not our message
-        delete msg;
-        return;
-    }
-    ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(msg);
-    screenStatusValues.record(screenMsg->getScreenOn());
-    screenOn = screenMsg->getScreenOn();
+void SimpleScreen::handleMessage(cMessage *msg) {
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+        if (message->getPayloadType() != EVENT_TYPE_SCREEN) {
+            // Not our message
+            delete msg;
+            return;
+        }
 
-    delete screenMsg;
-    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr){
+        if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
+            EV_INFO << "Collision Background" << endl;
+            collisionUser++;
+            delete msg;
+            return;
+        }
+
+        ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(
+                msg);
+        screenStatusValues.record(screenMsg->getScreenOn());
+        screenOn = screenMsg->getScreenOn();
+
+        if (screenOn)
+            deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+        else
+            deviceState = DEVICE_STATE_FREE;
+
+        delete screenMsg;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         EV_INFO << "Background Message" << endl;
-        // TODO: Handle?
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
+                BackgroundEventMessage *>(msg);
+        if (backgroundEventMessage->getBackgroundType()
+                == BACKGROUND_EVENT_TYPE_CPU) {
+
+            if ((deviceState == DEVICE_STATE_FREE)
+                    or (deviceState == DEVICE_STATE_UNKNOWN)) {
+                deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+                backgroundServiceEndMessage = new cMessage(
+                        "End Background Service");
+                scheduleAt(simTime() + backgroundEventMessage->getDuration(),
+                        backgroundServiceEndMessage);
+            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
+                EV_INFO << "self collision" << endl;
+                collisionSelf++;
+            } else {
+                collisionBackground++;
+            }
+
+        }
+        delete msg;
+    } else if (msg == backgroundServiceEndMessage) {
+        EV_INFO << "End background service" << endl;
+        deviceState = DEVICE_STATE_FREE;
         delete msg;
     } else {
         EV_ERROR << "Unknown Message" << endl;
@@ -58,8 +93,14 @@ void SimpleScreen::handleMessage(cMessage *msg)
     }
 }
 
-void SimpleScreen::refreshDisplay() const{
-    char buf [40];
+void SimpleScreen::finish() {
+    recordScalar("#collisionUser", collisionUser);
+    recordScalar("#collisionBackground", collisionBackground);
+    recordScalar("#collisionSelf", collisionSelf);
+}
+
+void SimpleScreen::refreshDisplay() const {
+    char buf[40];
     sprintf(buf, "Screen on: %i", screenOn);
     getDisplayString().setTagArg("t", 0, buf);
 
