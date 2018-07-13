@@ -20,13 +20,12 @@ namespace eventsimulator {
 
 Define_Module(BackgroundServiceInjector);
 
-void BackgroundServiceInjector::initialize()
-{
+void BackgroundServiceInjector::initialize() {
     int numEvents = par("numBackgroundEvents");
     EV_INFO << "Num params: " << numEvents << endl;
 
     simtime_t nextEvent = 0;
-    for (int i = 0; i < numEvents; i++){
+    for (int i = 0; i < numEvents; i++) {
         BackgroundEventContainer eventContainer;
         eventContainer.set_ParameterType("backgroundEvent");
         eventContainer.set_Index(i);
@@ -36,33 +35,40 @@ void BackgroundServiceInjector::initialize()
         backgroundEvents.push_back(eventContainer);
 
         simtime_t t = SimTime(eventContainer.get_NextExecutionTime());
-        if ((t < nextEvent) or (nextEvent == 0)){
+        if ((t < nextEvent) or (nextEvent == 0)) {
             nextEvent = t;
         }
     }
 
-    nextEventMessage = new cMessage("NextEventMessage");
-    scheduleAt(nextEvent, nextEventMessage);
-
+    if (par("numBackgroundEvents").intValue() > 0) {
+        nextEventMessage = new cMessage("NextEventMessage");
+        scheduleAt(nextEvent, nextEventMessage);
+    }
 }
 
-void BackgroundServiceInjector::handleMessage(cMessage *msg)
-{
-    if (msg == nextEventMessage){
+void BackgroundServiceInjector::handleMessage(cMessage *msg) {
+    if (msg == nextEventMessage) {
         EV_INFO << "@" << simTime() << " Next Event" << endl;
 
         // Handle all events
-        for (int eventNumber = 0; eventNumber < backgroundEvents.size(); eventNumber++){
-            if (backgroundEvents[eventNumber].get_NextExecutionTime() <= simTime()){
+        for (int eventNumber = 0; eventNumber < backgroundEvents.size();
+                eventNumber++) {
+            if (backgroundEvents[eventNumber].get_NextExecutionTime()
+                    <= simTime()) {
                 // Schedule event
 
-                BackgroundEventMessage *backgroundMsg = new BackgroundEventMessage("BackgroundEventMessage");
-                backgroundMsg->setStartTime(backgroundEvents[eventNumber].get_NextExecutionTime());
-                backgroundMsg->setDuration(backgroundEvents[eventNumber].get_NextDurationTime(this));
-                backgroundMsg->setBackgroundType(backgroundEvents[eventNumber].get_EnumType(this));
+                BackgroundEventMessage *backgroundMsg =
+                        new BackgroundEventMessage("BackgroundEventMessage");
+                backgroundMsg->setStartTime(
+                        backgroundEvents[eventNumber].get_NextExecutionTime());
+                backgroundMsg->setDuration(
+                        backgroundEvents[eventNumber].get_NextDurationTime(
+                                this));
+                backgroundMsg->setBackgroundType(
+                        backgroundEvents[eventNumber].get_EnumType(this));
 
-                for (int i = 0; i<gateSize("out"); i++ )
-                        send(backgroundMsg->dup(), "out", i);
+                for (int i = 0; i < gateSize("out"); i++)
+                    send(backgroundMsg->dup(), "out", i);
 
                 delete backgroundMsg;
 
@@ -71,24 +77,20 @@ void BackgroundServiceInjector::handleMessage(cMessage *msg)
         }
 
         simtime_t nextEvent = 0;
-        for (int eventNumber = 0; eventNumber < backgroundEvents.size(); eventNumber++){
-            if ((backgroundEvents[eventNumber].get_NextExecutionTime() < nextEvent) or (nextEvent == 0)){
-                nextEvent = backgroundEvents[eventNumber].get_NextExecutionTime();
+        for (int eventNumber = 0; eventNumber < backgroundEvents.size();
+                eventNumber++) {
+            if ((backgroundEvents[eventNumber].get_NextExecutionTime()
+                    < nextEvent) or (nextEvent == 0)) {
+                nextEvent =
+                        backgroundEvents[eventNumber].get_NextExecutionTime();
             }
         }
-
-        scheduleAt(nextEvent, msg);
+        if (nextEvent > 0)
+            scheduleAt(nextEvent, msg);
     }
 }
 
-void BackgroundServiceInjector::finish()
-{
+void BackgroundServiceInjector::finish() {
 }
-
-
-
-
-
-
 
 } //namespace
