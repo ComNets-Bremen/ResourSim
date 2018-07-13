@@ -19,34 +19,39 @@ namespace eventsimulator {
 
 Define_Module(SimpleCellular);
 
-SimpleCellular::SimpleCellular(){
+SimpleCellular::SimpleCellular() {
     cellularStatusValues.setName("Cellular Status");
 }
 
-SimpleCellular::~SimpleCellular(){
+SimpleCellular::~SimpleCellular() {
 
 }
 
-void SimpleCellular::initialize()
-{
+void SimpleCellular::initialize() {
     EV << "Init cellular status" << endl;
     // TODO: Init something?
     initialized = true;
 }
 
-void SimpleCellular::handleMessage(cMessage *msg)
-{
-    if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType() != EVENT_TYPE_CELLULAR){
-        // Not our message
+void SimpleCellular::handleMessage(cMessage *msg) {
+    if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        EV << "Background Message" << endl;
+        // TODO: implement?
         delete msg;
-        return;
-    }
-    CellularEventMessage *cellularMsg = check_and_cast<CellularEventMessage *>(msg);
-    cellularStatus = cellularMsg->getCellular_state();
-    networkTypeName = cellularMsg->getCellular_type();
-    cellularStatusValues.record(cellularStatus);
+    } else if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType()
+                != EVENT_TYPE_CELLULAR) {
+            // Not our message
+            delete msg;
+            return;
+        }
+        CellularEventMessage *cellularMsg = check_and_cast<
+                CellularEventMessage *>(msg);
+        cellularStatus = cellularMsg->getCellular_state();
+        networkTypeName = cellularMsg->getCellular_type();
+        cellularStatusValues.record(cellularStatus);
 
-    switch(cellularStatus){
+        switch (cellularStatus) {
         // TODO: Check if all offers internet connectivity
         case CELLULAR_CONNECTED:
         case CELLULAR_CONNECTING:
@@ -54,15 +59,20 @@ void SimpleCellular::handleMessage(cMessage *msg)
             break;
         default:
             cellularIsUsed = false;
-    }
-    // TODO: Check if transition is valid?
+        }
+        // TODO: Check if transition is valid?
 
-    delete cellularMsg;
+        delete cellularMsg;
+    } else {
+        EV_ERROR << "Unknown message type" << endl;
+        delete msg;
+    }
 }
 
 void SimpleCellular::refreshDisplay() const {
     std::string msgString;
-    msgString = "Cellular status: " + getCellularStateString(cellularStatus) + "\n";
+    msgString = "Cellular status: " + getCellularStatusString(cellularStatus)
+            + "\n";
     msgString += "Type: " + networkTypeName;
 
     getDisplayString().setTagArg("t", 0, msgString.c_str());

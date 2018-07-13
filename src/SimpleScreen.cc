@@ -36,6 +36,7 @@ void SimpleScreen::initialize()
 
 void SimpleScreen::handleMessage(cMessage *msg)
 {
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr){
     BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
     if (message->getPayloadType() != EVENT_TYPE_SCREEN){
         // Not our message
@@ -47,6 +48,14 @@ void SimpleScreen::handleMessage(cMessage *msg)
     screenOn = screenMsg->getScreenOn();
 
     delete screenMsg;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr){
+        EV_INFO << "Background Message" << endl;
+        // TODO: Handle?
+        delete msg;
+    } else {
+        EV_ERROR << "Unknown Message" << endl;
+        delete msg;
+    }
 }
 
 void SimpleScreen::refreshDisplay() const{

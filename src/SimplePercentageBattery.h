@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include <algorithm>
 #include "event_messages/EventMessages.h"
+#include "background_messages/BackgroundMessages.h"
 #include "warning_messages/BatteryCriticalWarningMessage_m.h"
 
 using namespace omnetpp;

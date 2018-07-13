@@ -22,57 +22,75 @@
 namespace eventsimulator {
 Define_Module(SimplePercentageBattery);
 
-void SimplePercentageBattery::handleMessage(cMessage *msg){
-    BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
-    if (message->getPayloadType() != EVENT_TYPE_BATTERY){
-        // Not our message
-        delete msg;
-        return;
-    }
+void SimplePercentageBattery::handleMessage(cMessage *msg) {
 
-    BatteryEventMessage *batMsg = check_and_cast<BatteryEventMessage *>(msg);
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
 
-    simtime_t curTime = simTime().dbl();
-
-    expectedBatteryPercentage = batMsg->getTheoreticalAbsolutePercentage();
-
-    EV_INFO << "Got message! " << batMsg->str() << endl;
-    if (!initialized){
-        setBatteryPercentage(batMsg->getTheoreticalAbsolutePercentage());
-        lastBatteryEventTime = curTime;
-        initialized = true;
-    }
-
-    if (lastBatteryEventTime != curTime){
-        double timedelta = (curTime - lastBatteryEventTime).dbl(); // in seconds
-        if (batMsg->getIs_charging()){
-            double deltaPercent = getClosestValue(batteryPercentage, chargePerHourArray) * timedelta / 3600.0;
-            EV_INFO << "Charge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
-            incrementalBatteryChange(deltaPercent);
-        } else {
-            //double deltaPercent = par("dischargePerHour").doubleValue() * timedelta / 3600.0;
-            double deltaPercent = getClosestValue(batteryPercentage, dischargePerHourArray) * timedelta / 3600.0;
-            EV_INFO << "Discharge: " << deltaPercent << " in " << timedelta << "seconds" << endl;
-            incrementalBatteryChange(deltaPercent);
+        BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+        if (message->getPayloadType() != EVENT_TYPE_BATTERY) {
+            // Not our message
+            delete msg;
+            return;
         }
+
+        BatteryEventMessage *batMsg = check_and_cast<BatteryEventMessage *>(
+                msg);
+
+        simtime_t curTime = simTime().dbl();
+
+        expectedBatteryPercentage = batMsg->getTheoreticalAbsolutePercentage();
+
+        EV_INFO << "Got message! " << batMsg->str() << endl;
+        if (!initialized) {
+            setBatteryPercentage(batMsg->getTheoreticalAbsolutePercentage());
+            lastBatteryEventTime = curTime;
+            initialized = true;
+        }
+
+        if (lastBatteryEventTime != curTime) {
+            double timedelta = (curTime - lastBatteryEventTime).dbl(); // in seconds
+            if (batMsg->getIs_charging()) {
+                double deltaPercent = getClosestValue(batteryPercentage,
+                        chargePerHourArray) * timedelta / 3600.0;
+                EV_INFO << "Charge: " << deltaPercent << " in " << timedelta
+                               << "seconds" << endl;
+                incrementalBatteryChange(deltaPercent);
+            } else {
+                //double deltaPercent = par("dischargePerHour").doubleValue() * timedelta / 3600.0;
+                double deltaPercent = getClosestValue(batteryPercentage,
+                        dischargePerHourArray) * timedelta / 3600.0;
+                EV_INFO << "Discharge: " << deltaPercent << " in " << timedelta
+                               << "seconds" << endl;
+                incrementalBatteryChange(deltaPercent);
+            }
+        }
+
+        // Valid?
+        if (!checkBatteryPercentageValid()) {
+            EV_ERROR << "WRONG BATTERY VALUES: " << batteryPercentage << endl;
+        }
+
+        EV_INFO << "Delta: "
+                       << (batMsg->getTheoreticalAbsolutePercentage()
+                               - batteryPercentage) << endl;
+        //delete batMsg;
+        delete msg;
+
+        // Collect data for statistical analysis
+        batteryPercentageValues.record(batteryPercentage);
+        expectedBatteryPercentageValues.record(expectedBatteryPercentage);
+        batteryPercentageDelta.record(
+                expectedBatteryPercentage - batteryPercentage);
+
+        lastBatteryEventTime = curTime;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        EV_INFO << "Background Message" << endl;
+        // TODO: Handly
+        delete msg;
+    } else {
+        EV_ERROR << "Unknown message type" << endl;
+        delete msg;
     }
-
-    // Valid?
-    if (!checkBatteryPercentageValid()){
-        EV_ERROR << "WRONG BATTERY VALUES: " << batteryPercentage << endl;
-    }
-
-    EV_INFO << "Delta: " << (batMsg->getTheoreticalAbsolutePercentage() - batteryPercentage) << endl;
-    //delete batMsg;
-    delete msg;
-
-    // Collect data for statistical analysis
-    batteryPercentageValues.record(batteryPercentage);
-    expectedBatteryPercentageValues.record(expectedBatteryPercentage);
-    batteryPercentageDelta.record(expectedBatteryPercentage - batteryPercentage);
-
-
-    lastBatteryEventTime = curTime;
 
 }
 
@@ -84,30 +102,32 @@ SimplePercentageBattery::SimplePercentageBattery() {
 
     batteryPercentageValues.setName("Calculated battery percentage");
     expectedBatteryPercentageValues.setName("Expected battery percentage");
-    batteryPercentageDelta.setName("Delta between expected and calculated battery percentage");
+    batteryPercentageDelta.setName(
+            "Delta between expected and calculated battery percentage");
 }
 
 SimplePercentageBattery::~SimplePercentageBattery() {
     // TODO Auto-generated destructor stub
 }
 
-double SimplePercentageBattery::getBatteryPercentage(){
+double SimplePercentageBattery::getBatteryPercentage() {
     return batteryPercentage;
 }
 
-void SimplePercentageBattery::setBatteryPercentage(double percentage){
+void SimplePercentageBattery::setBatteryPercentage(double percentage) {
     batteryPercentage = percentage;
 }
 
-bool SimplePercentageBattery::checkBatteryPercentageValid(){
+bool SimplePercentageBattery::checkBatteryPercentageValid() {
     return (batteryPercentage < 1.0f && batteryPercentage > 0.0f);
 }
 
-void SimplePercentageBattery::checkBattery(){
-    if (!checkBatteryPercentageValid()){
+void SimplePercentageBattery::checkBattery() {
+    if (!checkBatteryPercentageValid()) {
         // TODO: more checks?
-        for (int i = 0; i<gateSize("out"); i++){
-            BatteryCriticalWarningMessage *msg = new BatteryCriticalWarningMessage();
+        for (int i = 0; i < gateSize("out"); i++) {
+            BatteryCriticalWarningMessage *msg =
+                    new BatteryCriticalWarningMessage();
             msg->setCurrentBatteryLevel(batteryPercentage);
             send(msg, "out", i);
         }
@@ -115,7 +135,7 @@ void SimplePercentageBattery::checkBattery(){
     }
 }
 
-void SimplePercentageBattery::incrementalBatteryChange(double percentage){
+void SimplePercentageBattery::incrementalBatteryChange(double percentage) {
     batteryPercentage += percentage;
     batteryPercentage = std::min(batteryPercentage, 1.0);
     batteryPercentage = std::max(batteryPercentage, 0.0);
@@ -123,11 +143,11 @@ void SimplePercentageBattery::incrementalBatteryChange(double percentage){
     checkBattery();
 }
 
-bool SimplePercentageBattery::isInitialized(){
+bool SimplePercentageBattery::isInitialized() {
     return initialized;
 }
 
-void SimplePercentageBattery::initialize(){
+void SimplePercentageBattery::initialize() {
     EV_INFO << "Init battery" << endl;
     // TODO: Init?
     initialized = true;
@@ -146,16 +166,17 @@ void SimplePercentageBattery::initialize(){
     //EV_INFO << "#### " << getClosestValue(33, chargePerHourArray) << endl;
 }
 
-void SimplePercentageBattery::addToMap(const char *str, std::map<int, float> &m) {
+void SimplePercentageBattery::addToMap(const char *str,
+        std::map<int, float> &m) {
     cStringTokenizer tokenizer(str, ",");
-    while(tokenizer.hasMoreTokens()){
+    while (tokenizer.hasMoreTokens()) {
         std::string t = tokenizer.nextToken();
         int pos = t.find(":");
-        if (pos < 1 ){
+        if (pos < 1) {
             EV_ERROR << "Invalid array!" << endl;
         } else {
             int key = std::stoi(t.substr(0, pos));
-            float value = std::stof(t.substr(pos+1, t.size()-1));
+            float value = std::stof(t.substr(pos + 1, t.size() - 1));
 
             //EV_INFO << "Adding value to array: " << key << ": " << value <<  endl;
             m[key] = value;
@@ -163,15 +184,16 @@ void SimplePercentageBattery::addToMap(const char *str, std::map<int, float> &m)
     }
 }
 
-float SimplePercentageBattery::getClosestValue(float value, std::map<int, float> &m){
+float SimplePercentageBattery::getClosestValue(float value,
+        std::map<int, float> &m) {
 
-    int roundedValue = (int)std::round(value*100.0);
+    int roundedValue = (int) std::round(value * 100.0);
 
     int closestKey = m.begin()->first;
     float closestValue = m.begin()->second;
 
-    for (auto const& v : m){
-        if (abs(roundedValue - closestKey) > abs(roundedValue - v.first)){
+    for (auto const& v : m) {
+        if (abs(roundedValue - closestKey) > abs(roundedValue - v.first)) {
             closestKey = v.first;
             closestValue = v.second;
         }
@@ -180,16 +202,17 @@ float SimplePercentageBattery::getClosestValue(float value, std::map<int, float>
 
 }
 
-void SimplePercentageBattery::refreshDisplay() const{
-    char buf [40];
+void SimplePercentageBattery::refreshDisplay() const {
+    char buf[40];
     if (par("detailedStatus"))
-            sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage*100.0, expectedBatteryPercentage*100.0);
+        sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage * 100.0,
+                expectedBatteryPercentage * 100.0);
     else
-        sprintf(buf, "Value: %.2f%%", batteryPercentage*100.0);
+        sprintf(buf, "Value: %.2f%%", batteryPercentage * 100.0);
     getDisplayString().setTagArg("t", 0, buf);
 }
 
-void SimplePercentageBattery::finish(){
+void SimplePercentageBattery::finish() {
 
 }
 

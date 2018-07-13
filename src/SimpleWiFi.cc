@@ -19,33 +19,33 @@ namespace eventsimulator {
 
 Define_Module(SimpleWiFi);
 
-SimpleWiFi::SimpleWiFi(){
+SimpleWiFi::SimpleWiFi() {
     wifiStatusValues.setName("WiFi Status");
 }
 
-SimpleWiFi::~SimpleWiFi(){
+SimpleWiFi::~SimpleWiFi() {
 
 }
 
-void SimpleWiFi::initialize()
-{
+void SimpleWiFi::initialize() {
     EV << "Init WiFi status" << endl;
     // TODO: Init something?
     initialized = true;
 }
 
-void SimpleWiFi::handleMessage(cMessage *msg)
-{
-    if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType() != EVENT_TYPE_WIFI){
-        // Not our message
-        delete msg;
-        return;
-    }
-    WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
-    wifiStatus = wifiMsg->getWifi_status();
-    wifiStatusValues.record(wifiStatus);
+void SimpleWiFi::handleMessage(cMessage *msg) {
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType()
+                != EVENT_TYPE_WIFI) {
+            // Not our message
+            delete msg;
+            return;
+        }
+        WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
+        wifiStatus = wifiMsg->getWifi_status();
+        wifiStatusValues.record(wifiStatus);
 
-    switch(wifiStatus){
+        switch (wifiStatus) {
         // TODO: Check if all offers internet connectivity
         case WIFI_CONNECTING:
         case WIFI_CONNECTED:
@@ -56,10 +56,19 @@ void SimpleWiFi::handleMessage(cMessage *msg)
             break;
         default:
             wifiIsUsed = false;
-    }
-    // TODO: Check if transition is valid?
+        }
+        // TODO: Check if transition is valid?
 
-    delete wifiMsg;
+        delete wifiMsg;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        EV_INFO << "Background Message" << endl;
+        // TODO implement
+        delete msg;
+    } else {
+        EV_ERROR << "Unhandled message" << endl;
+        delete msg;
+    }
+
 }
 
 void SimpleWiFi::refreshDisplay() const {

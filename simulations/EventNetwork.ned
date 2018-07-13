@@ -23,6 +23,7 @@ import eventsimulator.SimpleAirplaneMode;
 import eventsimulator.SimpleWiFi;
 import eventsimulator.SimpleCellular;
 import eventsimulator.SimpleBluetooth;
+import eventsimulator.BackgroundServiceInjector;
 
 
 network EventNetwork
@@ -31,6 +32,10 @@ network EventNetwork
     submodules:
         userEventInjector[1]: PhoneEventInjector {
             @display("p=79,47");
+        }
+
+        backgroundServiceInjector[1]: BackgroundServiceInjector {
+            @display("p=108,124");
         }
 
         manager[1]: EventManager {
@@ -63,6 +68,7 @@ network EventNetwork
 
     connections:
         userEventInjector[0].out++ --> manager[0].in++;
+        backgroundServiceInjector[0].out++ --> manager[0].in++;
         manager[0].out++ --> battery[0].in++;
         manager[0].out++ --> screen[0].in++;
         manager[0].out++ --> airplane[0].in++;

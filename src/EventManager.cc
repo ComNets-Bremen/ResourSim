@@ -14,8 +14,8 @@
 // 
 
 // TODO: Implement the following:
-// background service injector
 // Can be neglected for the first step: unknown, traffic
+// More intelligent scheduling? Currently, everything is forwarded to all output ports
 
 #include "EventManager.h"
 
@@ -23,110 +23,146 @@ namespace eventsimulator {
 
 Define_Module(EventManager);
 
-void EventManager::initialize()
-{
+void EventManager::initialize() {
     EV_INFO << "Started" << endl;
 }
 
-void EventManager::handleMessage(cMessage *msg)
-{
+void EventManager::handleMessage(cMessage *msg) {
 
-    BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
-    EV_INFO << "Message type: " << message->getPayloadType() << endl;
+    //if (strcmp(msg->getName(), "BackgroundEventMessage") == 0){
+    if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        // Handle Background Events
 
-    switch (message->getPayloadType())
-    {
+        EV_INFO << "Background Message" << endl;
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
+                BackgroundEventMessage *>(msg);
+
+        for (int i = 0; i < gateSize("out"); i++)
+            send(msg->dup(), "out", i);
+
+        delete msg;
+        return;
+    } else if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        // Phone events
+
+        BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+        if (message == nullptr) {
+            delete msg;
+            return;
+        }
+        EV_INFO << "Message type: " << message->getPayloadType() << endl;
+
+        switch (message->getPayloadType()) {
         case EVENT_TYPE_SCREEN:
             //EV_INFO << "EVENT_TYPE_SCREEN" << endl;
-            handleScreenEvent(check_and_cast<ScreenEventMessage *>(msg));
-            break;
-        case EVENT_TYPE_BATTERY:
+            handleScreenEvent (check_and_cast<ScreenEventMessage *>(msg));break;
+            case EVENT_TYPE_BATTERY:
             //EV_INFO << "EVENT_TYPE_BATTERY" << endl;
             handleBatteryEvent(check_and_cast<BatteryEventMessage *>(msg));
             break;
-        case EVENT_TYPE_WIFI:
+            case EVENT_TYPE_WIFI:
             //EV_INFO << "EVENT_TYPE_WIFI" << endl;
             handleWiFiEvent(check_and_cast<WiFiEventMessage *>(msg));
             break;
-        case EVENT_TYPE_TRAFFIC:
+            case EVENT_TYPE_TRAFFIC:
             //EV_INFO << "EVENT_TYPE_TRAFFIC" << endl;
             handleTrafficEvent(check_and_cast<TrafficEventMessage *>(msg));
             break;
-        case EVENT_TYPE_CELLULAR:
+            case EVENT_TYPE_CELLULAR:
             //EV_INFO << "EVENT_TYPE_CELLULAR" << endl;
             handleCellularEvent(check_and_cast<CellularEventMessage *>(msg));
             break;
-        case EVENT_TYPE_AIRPLANE_MODE:
+            case EVENT_TYPE_AIRPLANE_MODE:
             //EV_INFO << "EVENT_TYPE_AIRPLANE_MODE" << endl;
             handleAirplaneModeEvent(check_and_cast<AirplaneModeEventMessage *>(msg));
             break;
-        case EVENT_TYPE_BLUETOOTH:
+            case EVENT_TYPE_BLUETOOTH:
             //EV_INFO << "EVENT_TYPE_BLUETOOTH" << endl;
             handleBluetoothEvent(check_and_cast<BluetoothEventMessage *>(msg));
             break;
-        case EVENT_TYPE_UNKNOWN:
+            case EVENT_TYPE_UNKNOWN:
             // Just the base event
             //EV_INFO << "EVENT_TYPE_UNKNOWN" << endl;
             handleUnknownEvent(message);
             delete msg;
             break;
-        default:
+            default:
             EV_ERROR << "Undefined Event" << endl;
             delete msg;
+        }
+    } else {
+        EV_ERROR << "Undefined message Type" << endl;
+        delete msg;
     }
 
-
 }
 
-void EventManager::handleScreenEvent(ScreenEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Screen Event: Screen on: " << msg->getScreenOn() << endl;
-    for (int i = 0; i<gateSize("out"); i++)
+void EventManager::handleScreenEvent(ScreenEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Screen Event: Screen on: "
+                   << msg->getScreenOn() << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleBatteryEvent(BatteryEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Battery Event: percentage: " << msg->getPercentage() << " chg_ac: " << msg->getChg_ac() << " chg_usb: " << msg->getChg_usb() << " chg_wireless: " << msg->getChg_wireless() << " is_charging: " << msg->getIs_charging() << " absPercentage: " << msg->getTheoreticalAbsolutePercentage() << endl;
-    for (int i = 0; i<gateSize("out"); i++ )
+void EventManager::handleBatteryEvent(BatteryEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Battery Event: percentage: "
+                   << msg->getPercentage() << " chg_ac: " << msg->getChg_ac()
+                   << " chg_usb: " << msg->getChg_usb() << " chg_wireless: "
+                   << msg->getChg_wireless() << " is_charging: "
+                   << msg->getIs_charging() << " absPercentage: "
+                   << msg->getTheoreticalAbsolutePercentage() << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleWiFiEvent(WiFiEventMessage *msg){
-    EV_INFO << "@" << simTime() << " WiFi Event: WiFi Status: " << getWiFiStatusString(msg->getWifi_status()) << endl;
-    for (int i = 0; i<gateSize("out"); i++)
+void EventManager::handleWiFiEvent(WiFiEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " WiFi Event: WiFi Status: "
+                   << getWiFiStatusString(msg->getWifi_status()) << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleTrafficEvent(TrafficEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Traffic Event: mobile_rx: " << msg->getMobile_rx() << " mobile_tx: " << msg->getMobile_tx() << " total_rx: " << msg->getTotal_rx() << " total_tx: " << msg->getTotal_tx() << endl;
+void EventManager::handleTrafficEvent(TrafficEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Traffic Event: mobile_rx: "
+                   << msg->getMobile_rx() << " mobile_tx: "
+                   << msg->getMobile_tx() << " total_rx: " << msg->getTotal_rx()
+                   << " total_tx: " << msg->getTotal_tx() << endl;
     delete msg;
 }
 
-void EventManager::handleCellularEvent(CellularEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Cellular Event: Cellular state: " << getCellularStateString(msg->getCellular_state()) << " type: " << msg->getCellular_type() << endl;
-    for (int i = 0; i<gateSize("out"); i++)
+void EventManager::handleCellularEvent(CellularEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Cellular Event: Cellular state: "
+                   << getCellularStatusString(msg->getCellular_state())
+                   << " type: " << msg->getCellular_type() << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Airplane Mode Event: airplane mode on: " << msg->getAirplaneModeOn() << endl;
-    for (int i = 0; i<gateSize("out"); i++)
+void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Airplane Mode Event: airplane mode on: "
+                   << msg->getAirplaneModeOn() << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleBluetoothEvent(BluetoothEventMessage *msg){
-    EV_INFO << "@" << simTime() << " Bluetooth Event: Bluetooth Status: " << getBluetoothStatusString(msg->getBluetooth_status()) << endl;
-    for (int i = 0; i<gateSize("out"); i++)
+void EventManager::handleBluetoothEvent(BluetoothEventMessage *msg) {
+    EV_INFO << "@" << simTime() << " Bluetooth Event: Bluetooth Status: "
+                   << getBluetoothStatusString(msg->getBluetooth_status())
+                   << endl;
+    for (int i = 0; i < gateSize("out"); i++)
         send(msg->dup(), "out", i);
     delete msg;
 }
 
-void EventManager::handleUnknownEvent(BaseEventMessage *msg){
+void EventManager::handleUnknownEvent(BaseEventMessage *msg) {
     EV_ERROR << "@" << simTime() << " Event is not defined!" << msg << endl;
     delete msg;
 }
-}; // namespace
+}
+;
+// namespace

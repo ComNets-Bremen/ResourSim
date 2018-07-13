@@ -18,6 +18,7 @@
 
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
+#include "background_messages/BackgroundMessages.h"
 
 using namespace omnetpp;
 

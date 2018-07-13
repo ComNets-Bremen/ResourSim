@@ -19,33 +19,34 @@ namespace eventsimulator {
 
 Define_Module(SimpleBluetooth);
 
-SimpleBluetooth::SimpleBluetooth(){
+SimpleBluetooth::SimpleBluetooth() {
     bluetoothStatusValues.setName("Bluetooth Status");
 }
 
-SimpleBluetooth::~SimpleBluetooth(){
+SimpleBluetooth::~SimpleBluetooth() {
 
 }
 
-void SimpleBluetooth::initialize()
-{
+void SimpleBluetooth::initialize() {
     EV << "Init Bluetooth status" << endl;
     // TODO: Init something?
     initialized = true;
 }
 
-void SimpleBluetooth::handleMessage(cMessage *msg)
-{
-    if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType() != EVENT_TYPE_BLUETOOTH){
-        // Not our message
-        delete msg;
-        return;
-    }
-    BluetoothEventMessage *bluetoothMsg = check_and_cast<BluetoothEventMessage *>(msg);
-    bluetoothStatus = bluetoothMsg->getBluetooth_status();
-    bluetoothStatusValues.record(bluetoothStatus);
+void SimpleBluetooth::handleMessage(cMessage *msg) {
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType()
+                != EVENT_TYPE_BLUETOOTH) {
+            // Not our message
+            delete msg;
+            return;
+        }
+        BluetoothEventMessage *bluetoothMsg = check_and_cast<
+                BluetoothEventMessage *>(msg);
+        bluetoothStatus = bluetoothMsg->getBluetooth_status();
+        bluetoothStatusValues.record(bluetoothStatus);
 
-    switch(bluetoothStatus){
+        switch (bluetoothStatus) {
         case BLUETOOTH_STATE_ON:
         case BLUETOOTH_STATE_TURNING_ON:
         case BLUETOOTH_STATE_TURNING_OFF:
@@ -53,15 +54,24 @@ void SimpleBluetooth::handleMessage(cMessage *msg)
             break;
         default:
             bluetoothIsUsed = false;
-    }
-    // TODO: Check if transition is valid?
+        }
+        // TODO: Check if transition is valid?
 
-    delete bluetoothMsg;
+        delete bluetoothMsg;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        EV_INFO << "Background Event Message" << endl;
+        // TODO implement
+        delete msg;
+    } else {
+        EV_ERROR << "Unhandled message type" << endl;
+        delete msg;
+    }
 }
 
 void SimpleBluetooth::refreshDisplay() const {
     std::string statusString;
-    statusString = "Bluetooth status: " + getBluetoothStatusString(bluetoothStatus);
+    statusString = "Bluetooth status: "
+            + getBluetoothStatusString(bluetoothStatus);
 
     getDisplayString().setTagArg("t", 0, statusString.c_str());
     if (bluetoothIsUsed)

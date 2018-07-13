@@ -15,43 +15,51 @@
 
 #include "SimpleAirplaneMode.h"
 
-namespace eventsimulator{
+namespace eventsimulator {
 
 Define_Module(SimpleAirplaneMode);
 
-SimpleAirplaneMode::SimpleAirplaneMode(){
+SimpleAirplaneMode::SimpleAirplaneMode() {
     airplaneModeValues.setName("Airplane Mode on");
 }
 
-SimpleAirplaneMode::~SimpleAirplaneMode(){
+SimpleAirplaneMode::~SimpleAirplaneMode() {
 
 }
 
-void SimpleAirplaneMode::initialize()
-{
+void SimpleAirplaneMode::initialize() {
     EV_INFO << "Init airplane mode" << endl;
     // TODO: Init??
     initialized = true;
 }
 
-void SimpleAirplaneMode::handleMessage(cMessage *msg)
-{
-    BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
-    if (message->getPayloadType() != EVENT_TYPE_AIRPLANE_MODE){
-        // Not our message
-        delete msg;
-        return;
-    }
-    AirplaneModeEventMessage * airplaneMsg = check_and_cast<AirplaneModeEventMessage *>(msg);
-    airplaneModeValues.record(airplaneMsg->getAirplaneModeOn());
-    airplaneModeOn = airplaneMsg->getAirplaneModeOn();
+void SimpleAirplaneMode::handleMessage(cMessage *msg) {
+    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+        BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+        if (message->getPayloadType() != EVENT_TYPE_AIRPLANE_MODE) {
+            // Not our message
+            delete msg;
+            return;
+        }
+        AirplaneModeEventMessage * airplaneMsg = check_and_cast<
+                AirplaneModeEventMessage *>(msg);
+        airplaneModeValues.record(airplaneMsg->getAirplaneModeOn());
+        airplaneModeOn = airplaneMsg->getAirplaneModeOn();
 
-    delete airplaneMsg;
+        delete airplaneMsg;
+    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        EV_INFO << "Background Event Message" << endl;
+        // TODO: Handle?
+        delete msg;
+    } else {
+        EV_ERROR << "Unhandled message type" << endl;
+        delete msg;
+    }
 }
 
-void SimpleAirplaneMode::refreshDisplay() const{
-    char buf [40];
-    sprintf(buf,"Airplane mode active: %i", airplaneModeOn);
+void SimpleAirplaneMode::refreshDisplay() const {
+    char buf[40];
+    sprintf(buf, "Airplane mode active: %i", airplaneModeOn);
     getDisplayString().setTagArg("t", 0, buf);
 
     if (airplaneModeOn)
