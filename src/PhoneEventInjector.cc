@@ -206,7 +206,9 @@ void PhoneEventInjector::initialize() {
 
     if (par("stopSimulationAtEndOfTrace").boolValue()) {
         cancelSimulationMessage = new cMessage("Cancel Simulation");
-        scheduleAt(maxSimulationTime, cancelSimulationMessage);
+
+        // We end the simulation 10 seconds after the last event from the trace has been injected to the system
+        scheduleAt(maxSimulationTime + SimTime(10, SimTimeUnit::SIMTIME_S), cancelSimulationMessage);
     }
 
 }
