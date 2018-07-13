@@ -55,7 +55,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         screenOn = screenMsg->getScreenOn();
 
         if (screenOn)
-            deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+            deviceState = DEVICE_STATE_OCCUPIED_USER;
         else
             deviceState = DEVICE_STATE_FREE;
 
