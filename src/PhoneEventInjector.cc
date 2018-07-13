@@ -30,12 +30,11 @@ typedef std::pair<simtime_t, BaseEventMessage*> eventPair;
 
 std::list<eventPair> eventList;
 
-bool sortEventList(const eventPair &a, const eventPair &b){
+bool sortEventList(const eventPair &a, const eventPair &b) {
     return a.first < b.first;
 }
 
-void PhoneEventInjector::initialize()
-{
+void PhoneEventInjector::initialize() {
     cXMLElement *xmlEvents = par("eventFilename").xmlValue();
     std::vector<std::string> unhandledEvents;
 
@@ -43,60 +42,71 @@ void PhoneEventInjector::initialize()
         throw cRuntimeError("No event xml file");
 
     cXMLElementList paraList = xmlEvents->getElementsByTagName("parameters");
-    if (paraList.size()){
+    if (paraList.size()) {
         // We have a parameter element. Get the first one
         cXMLElementList elements = paraList.at(0)->getChildren();
-        for (auto const& parameter:elements){
+        for (auto const& parameter : elements) {
 
-            if(hasPar(parameter->getName())){
+            if (hasPar(parameter->getName())) {
                 // Parameter exists, created by ned file
                 EV << "Skipping parameter " << parameter->getName() << endl;
                 continue;
             } else {
-                EV << "Parameter: " << parameter->getName() << " value: " << parameter->getNodeValue()<< endl;
+                EV << "Parameter: " << parameter->getName() << " value: "
+                          << parameter->getNodeValue() << endl;
                 // TODO set simulation parameter programmatically
             }
         }
     }
     /*
-    if (paraList != nullptr){
-        EV << "ParaList" << battery_charge_min << endl;
-    } else {
-        EV << "ParaList nullptr" << endl;
-    }
-    */
+     if (paraList != nullptr){
+     EV << "ParaList" << battery_charge_min << endl;
+     } else {
+     EV << "ParaList nullptr" << endl;
+     }
+     */
 
     cXMLElementList allEvents = xmlEvents->getElementsByTagName("event");
 
-    for (auto const& value:allEvents){
+    simtime_t maxSimulationTime = 0;
+
+    for (auto const& value : allEvents) {
 
         /*
-        // Print Attributes
-        EV_INFO << "Attributes: ";
-        auto attrs = value->getAttributes();
-        for (cXMLAttributeMap::iterator it = attrs.begin(); it != attrs.end(); ++it){
-            EV_INFO << it->first << ", ";
-        }
-        EV_INFO << endl;
-        */
+         // Print Attributes
+         EV_INFO << "Attributes: ";
+         auto attrs = value->getAttributes();
+         for (cXMLAttributeMap::iterator it = attrs.begin(); it != attrs.end(); ++it){
+         EV_INFO << it->first << ", ";
+         }
+         EV_INFO << endl;
+         */
         auto eventType = value->getAttribute("data_type");
         if (eventType == nullptr) {
-            EV_ERROR << "Can not identify data type. No \"data_type\" attribute. Skipping..." << endl;;
+            EV_ERROR
+                            << "Can not identify data type. No \"data_type\" attribute. Skipping..."
+                            << endl;
+            ;
             continue;
         }
 
         auto eventTime = value->getAttribute("timestamp_s");
-        if (eventTime == nullptr){
+        if (eventTime == nullptr) {
             EV_ERROR << "No event time!" << endl;
             continue;
         }
 
-        simtime_t eventTimestamp = SimTime(convertToDouble(eventTime)*1000.0, SimTimeUnit::SIMTIME_MS);
+        simtime_t eventTimestamp = SimTime(convertToDouble(eventTime) * 1000.0,
+                SimTimeUnit::SIMTIME_MS);
 
-        if (strcmp(eventType, "ScreenStatus") == 0){
+        if (eventTimestamp > maxSimulationTime)
+            maxSimulationTime = eventTimestamp;
+
+        if (strcmp(eventType, "ScreenStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             ScreenEventMessage *msg = new ScreenEventMessage(eventType);
-            msg->setScreenOn(convertToBool(value->getAttribute("screen_status")));
+            msg->setScreenOn(
+                    convertToBool(value->getAttribute("screen_status")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "TrafficStatistics") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
@@ -110,70 +120,80 @@ void PhoneEventInjector::initialize()
 
             //EV_INFO << "Handling " << eventType << "..." << endl;
             BatteryEventMessage *msg = new BatteryEventMessage(eventType);
-            msg->setPercentage(convertToDouble(value->getAttribute("delta_percentage")));
-            msg->setTheoreticalAbsolutePercentage(convertToDouble(value->getAttribute("percentage")));
+            msg->setPercentage(
+                    convertToDouble(value->getAttribute("delta_percentage")));
+            msg->setTheoreticalAbsolutePercentage(
+                    convertToDouble(value->getAttribute("percentage")));
             msg->setChg_ac(convertToBool(value->getAttribute("chg_ac")));
             msg->setChg_usb(convertToBool(value->getAttribute("chg_usb")));
-            msg->setChg_wireless(convertToBool(value->getAttribute("chg_wireless")));
-            msg->setIs_charging(convertToBool(value->getAttribute("is_charging")));
+            msg->setChg_wireless(
+                    convertToBool(value->getAttribute("chg_wireless")));
+            msg->setIs_charging(
+                    convertToBool(value->getAttribute("is_charging")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "CellularStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
-            CellularEventMessage *msg = new  CellularEventMessage(eventType);
+            CellularEventMessage *msg = new CellularEventMessage(eventType);
             msg->setCellular_type(value->getAttribute("cellular_type"));
-            msg->setCellular_state(convertToInt(value->getAttribute("cellular_state")));
+            msg->setCellular_state(
+                    convertToInt(value->getAttribute("cellular_state")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "AirplaneModeStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             AirplaneModeEventMessage *msg = new AirplaneModeEventMessage();
-            msg->setAirplaneModeOn(convertToBool(value->getAttribute("airplane_mode")));
+            msg->setAirplaneModeOn(
+                    convertToBool(value->getAttribute("airplane_mode")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "WiFiStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             WiFiEventMessage *msg = new WiFiEventMessage(eventType);
-            msg->setWifi_status(convertToInt(value->getAttribute("wifi_status")));
+            msg->setWifi_status(
+                    convertToInt(value->getAttribute("wifi_status")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "BluetoothStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             BluetoothEventMessage *msg = new BluetoothEventMessage(eventType);
-            msg->setBluetooth_status(convertToInt(value->getAttribute("bluetooth_status")));
+            msg->setBluetooth_status(
+                    convertToInt(value->getAttribute("bluetooth_status")));
             eventList.push_back(eventPair(eventTimestamp, msg));
         } else {
             EV_ERROR << "Unhandled event type: " << eventType << endl;
-            if (std::find(unhandledEvents.begin(), unhandledEvents.end(), std::string(eventType)) == unhandledEvents.end()){
+            if (std::find(unhandledEvents.begin(), unhandledEvents.end(),
+                    std::string(eventType)) == unhandledEvents.end()) {
                 unhandledEvents.push_back(std::string(eventType));
             }
         }
 
         /*
-        EV_INFO << "Type:" << value->getAttribute("type") << " Status:" << value->getAttribute("status") << " Value:" << value->getNodeValue() << endl;
-        simtime_t eventTime = SimTime(strtod(value->getNodeValue(), NULL)*1000, SimTimeUnit::SIMTIME_MS);
+         EV_INFO << "Type:" << value->getAttribute("type") << " Status:" << value->getAttribute("status") << " Value:" << value->getNodeValue() << endl;
+         simtime_t eventTime = SimTime(strtod(value->getNodeValue(), NULL)*1000, SimTimeUnit::SIMTIME_MS);
 
-        EV_INFO << "Next event: " << eventTime << endl;
-        ScreenEventMessage *msg = new ScreenEventMessage("ScreenEvent");
+         EV_INFO << "Next event: " << eventTime << endl;
+         ScreenEventMessage *msg = new ScreenEventMessage("ScreenEvent");
 
-        msg->setInjectionTime(eventTime);
-        msg->setPayloadType(EVENT_TYPE_SCREEN);
+         msg->setInjectionTime(eventTime);
+         msg->setPayloadType(EVENT_TYPE_SCREEN);
 
 
-        std::string statusString = value->getAttribute("status");
+         std::string statusString = value->getAttribute("status");
 
-        EV_INFO << "STATUS: " << statusString << endl;
+         EV_INFO << "STATUS: " << statusString << endl;
 
-        if (statusString == "on") msg->setScreenOn(true);
-        else if (statusString == "off") msg->setScreenOn(false);
-        else throw cRuntimeError("Not an On Off value");
+         if (statusString == "on") msg->setScreenOn(true);
+         else if (statusString == "off") msg->setScreenOn(false);
+         else throw cRuntimeError("Not an On Off value");
 
-        scheduleAt(eventTime, msg);
-        */
+         scheduleAt(eventTime, msg);
+         */
     }
-    for (auto ue:unhandledEvents) {
+    for (auto ue : unhandledEvents) {
         EV_ERROR << "Unhandled Event: " << ue << endl;
     }
 
     eventList.sort(sortEventList);
 
-    for (std::list<eventPair>::iterator it = eventList.begin(); it != eventList.end(); ++it){
+    for (std::list<eventPair>::iterator it = eventList.begin();
+            it != eventList.end(); ++it) {
         //EV_INFO << "List item " << it->first << " " << it->second << endl;
         scheduleAt(it->first, it->second);
         //delete it->second;
@@ -182,13 +202,31 @@ void PhoneEventInjector::initialize()
     EV_INFO << allEvents.size() << " events in file" << endl;
     EV_INFO << eventList.size() << " events in vector" << endl;
 
+    EV_INFO << "Maximum timestamp: " << maxSimulationTime << endl;
+
+    if (par("stopSimulationAtEndOfTrace").boolValue()) {
+        cancelSimulationMessage = new cMessage("Cancel Simulation");
+        scheduleAt(maxSimulationTime, cancelSimulationMessage);
+    }
+
 }
 
-void PhoneEventInjector::handleMessage(cMessage *msg)
-{
+void PhoneEventInjector::handleMessage(cMessage *msg) {
+
+    if (msg == cancelSimulationMessage) {
+        EV_INFO << "Simulation stop requested" << endl;
+        // Stop the simulation
+        endSimulation();
+
+        delete msg;
+        return;
+    }
     EV_INFO << "MSG to out" << endl;
-    for (int i = 0; i<gateSize("out"); i++ )
-        send(msg, "out", i);
+    for (int i = 0; i < gateSize("out"); i++)
+        send(msg->dup(), "out", i);
+    delete msg;
 }
 
-}; // namespace
+}
+;
+// namespace

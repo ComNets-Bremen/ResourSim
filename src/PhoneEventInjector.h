@@ -30,6 +30,9 @@ class PhoneEventInjector : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+
+  private:
+    cMessage *cancelSimulationMessage;
 };
 
 }; // namespace
