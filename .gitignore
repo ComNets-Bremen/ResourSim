@@ -42,3 +42,6 @@ Resoursim
 
 #results
 results
+
+# cmdenv log file
+.cmdenv-log
