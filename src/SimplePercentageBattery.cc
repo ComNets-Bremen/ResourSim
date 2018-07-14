@@ -153,12 +153,14 @@ void SimplePercentageBattery::initialize() {
     initialized = true;
 
     // Add charging values
-    const char *chargePerHourChar = par("chargePerHourArray");
+    const char *chargePerHourChar = par("chargePerHourArray").stringValue();
+    //EV_INFO << "STRING FROM CONFIG: " << chargePerHourChar << endl;
     addToMap(chargePerHourChar, chargePerHourArray);
     EV_INFO << "Charging Values: " << chargePerHourArray.size() << endl;
 
     // Add discharging values
-    const char *dischargePerHourChar = par("dischargePerHourArray");
+    const char *dischargePerHourChar = par("dischargePerHourArray").stringValue();
+    //EV_INFO << "STRING FROM CONFIG: " << dischargePerHourChar << endl;
     addToMap(dischargePerHourChar, dischargePerHourArray);
     EV_INFO << "Discharging Values: " << dischargePerHourArray.size() << endl;
 
