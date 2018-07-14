@@ -22,7 +22,7 @@ package eventsimulator;
 simple PhoneEventInjector
 {
     parameters:
-        xml eventFilename = xmldoc("long-jd.xml");
+        xml eventFilename = default(xmldoc("long-jd.xml"));
         @display("i=status/user-injector");
         
         bool stopSimulationAtEndOfTrace = true;
