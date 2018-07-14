@@ -8,7 +8,8 @@ Introduction
 a variety of different phone usage parameters for further analysis.
 
 Resourcesim is a tool to run the collected data traces in the
-[OMNeT++ simulator](http://omnetpp.org/).
+[OMNeT++ simulator](http://omnetpp.org/) and analyze the probability of
+collisions for background tasks using a specific pattern.
 
 
 Changelog
