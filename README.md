@@ -1,4 +1,4 @@
-Resoursim
+ResourSim
 =========
 
 Introduction
