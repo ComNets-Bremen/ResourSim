@@ -1,6 +1,14 @@
 Changelog
 =========
 
+2018-07-18
+----------
+
+- Rm old files
+- Tidied up the code
+- Added some comments
+- Extended Readme
+
 2018-07-14
 ----------
 
