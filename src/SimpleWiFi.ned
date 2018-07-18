@@ -15,9 +15,8 @@
 
 package eventsimulator;
 
-//
-// TODO auto-generated module
-//
+// This module represents the status of the WiFi interface
+
 simple SimpleWiFi
 {
     @display("i=status/wifi_neutral");

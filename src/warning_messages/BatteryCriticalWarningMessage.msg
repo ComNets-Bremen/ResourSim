@@ -16,7 +16,7 @@
 namespace eventsimulator;
 
 //
-// TODO Message fired in case of battery issues (too low / too high / dead
+// TODO:Just a draft, message fired in case of battery issues (too low / too high / dead)
 //
 message BatteryCriticalWarningMessage {
     double currentBatteryLevel;

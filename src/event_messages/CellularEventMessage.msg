@@ -13,6 +13,10 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+// A message type representing a cellular event message and the corresponding
+// handling classes
+
 cplusplus {{
 #include "BaseEventMessage_m.h"
 
@@ -45,9 +49,6 @@ cplusplus {{
 }}
 message BaseEventMessage;
 
-//
-// TODO generated message class
-//
 message CellularEventMessage extends BaseEventMessage {
     payloadType=EVENT_TYPE_CELLULAR;
     int cellular_state;

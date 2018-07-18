@@ -3,6 +3,8 @@
  *
  *  Created on: Apr 4, 2018
  *      Author: jd
+ *
+ *  Generic include for event messages
  */
 
 #ifndef EVENTMESSAGES_H_

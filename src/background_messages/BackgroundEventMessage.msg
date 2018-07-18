@@ -13,6 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// Message representing a background event
+
 cplusplus {{
 #include "BackgroundTypeDefinitions.h"
 }};

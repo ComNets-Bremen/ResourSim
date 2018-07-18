@@ -13,6 +13,11 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+/**
+ * Inject background messages according to the pattern defined in the
+ * configuration, i.e., in the omnetpp.ini or the corresponding .ned files
+ */
+
 #include "BackgroundServiceInjector.h"
 #include "background_messages/BackgroundMessages.h"
 

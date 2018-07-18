@@ -13,9 +13,16 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+/*
+ * This module represents the EventManager module. Currently, it mainly
+ * forwards all messages received via the in ports to all out ports
+ */
+
+
 // TODO: Implement the following:
 // Can be neglected for the first step: unknown, traffic
 // More intelligent scheduling? Currently, everything is forwarded to all output ports
+
 
 #include "EventManager.h"
 

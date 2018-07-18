@@ -13,6 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// The base message / event type for all other (user injected) events
+
 cplusplus {{
 #include "EventTypeDefinitions.h"
 }};

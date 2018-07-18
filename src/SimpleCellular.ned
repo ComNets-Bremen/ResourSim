@@ -13,6 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// Module which represents the status of the cellular network interface
+
 package eventsimulator;
 
 simple SimpleCellular

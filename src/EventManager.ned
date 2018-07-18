@@ -15,7 +15,9 @@
 
 package eventsimulator;
 
-//
+// Simple EventManager. Currently, it sends all incoming messages to all out
+// ports. The receivers have to decide whether they handle the message or not
+
 simple EventManager
 {
     parameters:

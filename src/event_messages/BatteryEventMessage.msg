@@ -18,9 +18,8 @@ cplusplus {{
 }}
 message BaseEventMessage;
 
-//
-// TODO generated message class
-//
+// A message type representing a battery status changed message
+
 message BatteryEventMessage extends BaseEventMessage {
     payloadType=EVENT_TYPE_BATTERY;
     double percentage;

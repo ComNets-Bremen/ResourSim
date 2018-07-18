@@ -13,14 +13,14 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// A message type representing an airplane or flight mode message
+
 cplusplus {{
 #include "BaseEventMessage_m.h"
 }}
 message BaseEventMessage;
 
-//
-// TODO generated message class
-//
+
 message AirplaneModeEventMessage extends BaseEventMessage {
     payloadType=EVENT_TYPE_AIRPLANE_MODE;
     bool airplaneModeOn;

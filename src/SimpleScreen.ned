@@ -13,11 +13,11 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+// This module represents the status of the screen
+
 package eventsimulator;
 
-//
-// TODO auto-generated module
-//
 simple SimpleScreen
 {
     @display("i=status/screen_off");

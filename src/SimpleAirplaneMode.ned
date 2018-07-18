@@ -13,9 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-//
-// TODO auto-generated module
-//
+// Represents the airplane mode of the phone.
 
 package eventsimulator;
 

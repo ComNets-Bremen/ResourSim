@@ -13,6 +13,10 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+/**
+ * Handle background events
+ */
 #ifndef BACKGROUNDEVENTCONTAINER_H_
 #define BACKGROUNDEVENTCONTAINER_H_
 

@@ -13,6 +13,9 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// A message type representing the status of the WiFi connection
+// This file also implements some helper functions
+
 cplusplus {{
 #include "BaseEventMessage_m.h"
 
@@ -59,9 +62,6 @@ cplusplus {{
 
 message BaseEventMessage;
 
-//
-// TODO generated message class
-//
 message WiFiEventMessage extends BaseEventMessage {
     payloadType=EVENT_TYPE_WIFI;
     int wifi_status;

@@ -13,6 +13,14 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+/**
+ * Implements a simple phone event injector.
+ *
+ * Events are read from the xml file and sent as the corresponding messages
+ * to the manager
+ */
+
 #include "PhoneEventInjector.h"
 #include "event_messages/EventMessages.h"
 
@@ -163,28 +171,6 @@ void PhoneEventInjector::initialize() {
                 unhandledEvents.push_back(std::string(eventType));
             }
         }
-
-        /*
-         EV_INFO << "Type:" << value->getAttribute("type") << " Status:" << value->getAttribute("status") << " Value:" << value->getNodeValue() << endl;
-         simtime_t eventTime = SimTime(strtod(value->getNodeValue(), NULL)*1000, SimTimeUnit::SIMTIME_MS);
-
-         EV_INFO << "Next event: " << eventTime << endl;
-         ScreenEventMessage *msg = new ScreenEventMessage("ScreenEvent");
-
-         msg->setInjectionTime(eventTime);
-         msg->setPayloadType(EVENT_TYPE_SCREEN);
-
-
-         std::string statusString = value->getAttribute("status");
-
-         EV_INFO << "STATUS: " << statusString << endl;
-
-         if (statusString == "on") msg->setScreenOn(true);
-         else if (statusString == "off") msg->setScreenOn(false);
-         else throw cRuntimeError("Not an On Off value");
-
-         scheduleAt(eventTime, msg);
-         */
     }
     for (auto ue : unhandledEvents) {
         EV_ERROR << "Unhandled Event: " << ue << endl;

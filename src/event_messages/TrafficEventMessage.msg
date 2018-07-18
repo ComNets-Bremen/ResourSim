@@ -13,14 +13,13 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// A message type representing the traffic on a mobile phone
+
 cplusplus {{
 #include "BaseEventMessage_m.h"
 }}
 message BaseEventMessage;
 
-//
-// TODO generated message class
-//
 message TrafficEventMessage extends BaseEventMessage {
     payloadType=EVENT_TYPE_TRAFFIC;
     long mobile_rx;

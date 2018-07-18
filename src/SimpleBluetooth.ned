@@ -13,6 +13,8 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+// Module which represents the status of the Bluetooth interface
+
 package eventsimulator;
 
 simple SimpleBluetooth
