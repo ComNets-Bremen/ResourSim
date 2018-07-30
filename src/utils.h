@@ -84,6 +84,10 @@ inline double convertToInt(const std::string& s)
  * @throws #BadConversion in case of an error
  */
 inline bool convertToBool(std::string str) {
+    if (str.length() == 1){
+        if (str == "1") return true;
+        if (str == "0") return false;
+    }
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     std::istringstream is(str);
     bool b;
