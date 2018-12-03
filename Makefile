@@ -33,6 +33,7 @@ O = $(PROJECT_OUTPUT_DIR)/$(CONFIGNAME)/$(PROJECTRELATIVE_PATH)
 OBJS = \
     $O/src/BackgroundEventContainer.o \
     $O/src/BackgroundServiceInjector.o \
+    $O/src/BaseResourceMode.o \
     $O/src/EventManager.o \
     $O/src/PhoneEventInjector.o \
     $O/src/SimpleAirplaneMode.o \
