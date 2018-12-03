@@ -20,7 +20,9 @@ package eventsimulator;
 
 simple SimpleScreen
 {
-    @display("i=status/screen_off");
+    parameters:
+    	@display("i=status/screen_off");
+    	volatile int statsWindowSize @unit("s")	= default(120s);
     gates:
         input in[];
         output out[];

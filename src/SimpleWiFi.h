@@ -17,9 +17,12 @@
 #define __RESOURSIM_SIMPLEWIFI_H_
 
 #include <omnetpp.h>
+#include <map>
+#include <algorithm>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
 #include "DeviceStates.h"
+#include "BaseResourceMode.h"
 
 using namespace omnetpp;
 
@@ -28,7 +31,7 @@ namespace eventsimulator {
 /**
  * TODO - Generated class
  */
-class SimpleWiFi : public cSimpleModule
+class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
 {
   public:
     SimpleWiFi();

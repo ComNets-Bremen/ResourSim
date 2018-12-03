@@ -19,7 +19,9 @@ package eventsimulator;
 
 simple SimpleWiFi
 {
-    @display("i=status/wifi_neutral");
+    parameters:
+        @display("i=status/wifi_neutral");
+        volatile int statsWindowSize @unit("s")	= default(120s);
     gates:
         input in[];
         output out[];
