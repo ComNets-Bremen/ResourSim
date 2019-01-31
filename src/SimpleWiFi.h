@@ -51,15 +51,19 @@ class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
 
     DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
 
-    cMessage *backgroundServiceEndMessage;
-
     // Statistics
 
     cOutVector wifiStatusValues;
+    cOutVector wifiStatusOn;
+    cOutVector wifiStatusOff;
+    cOutVector wifiDeviceState;
 
     long collisionBackground = 0;
     long collisionUser = 0;
     long collisionSelf = 0;
+
+    cMessage *collectMeasurementsEvent;
+    cMessage *backgroundServiceEndMessage;
 };
 
 } //namespace

@@ -21,7 +21,8 @@ simple SimpleWiFi
 {
     parameters:
         @display("i=status/wifi_neutral");
-        volatile int statsWindowSize @unit("s")	= default(120s);
+        volatile int statsWindowSize @unit("s")	= default(3600s);
+        volatile int periodicStatsCollectionInterval @unit("s") = default(240s);
     gates:
         input in[];
         output out[];
