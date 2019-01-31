@@ -38,11 +38,15 @@ void SimplePercentageBattery::handleMessage(cMessage *msg) {
 
         simtime_t curTime = simTime().dbl();
 
-        expectedBatteryPercentage = batMsg->getTheoreticalAbsolutePercentage();
+        realBatteryPercentage = batMsg->getTheoreticalAbsolutePercentage();
 
         EV_INFO << "Got message! " << batMsg->str() << endl;
+        EV_ERROR << "AM I INITIALIZED? " << initialized << endl;
         if (!initialized) {
             setBatteryPercentage(batMsg->getTheoreticalAbsolutePercentage());
+            EV_ERROR << "Set Battery Level to "
+                            << batMsg->getTheoreticalAbsolutePercentage()
+                            << endl;
             lastBatteryEventTime = curTime;
             initialized = true;
         }
@@ -77,37 +81,61 @@ void SimplePercentageBattery::handleMessage(cMessage *msg) {
         delete msg;
 
         // Collect data for statistical analysis
-        batteryPercentageValues.record(batteryPercentage);
-        expectedBatteryPercentageValues.record(expectedBatteryPercentage);
-        batteryPercentageDelta.record(std::sqrt(std::abs(std::pow(expectedBatteryPercentage, 2) - std::pow(batteryPercentage, 2))));
-
+        theoreticalBatteryPercentageValues.record(batteryPercentage);
+        realBatteryPercentageValues.record(realBatteryPercentage);
+        //batteryPercentageDelta.record(std::sqrt(std::abs(std::pow(expectedBatteryPercentage, 2) - std::pow(batteryPercentage, 2))));
+        batteryPercentageDelta.record(
+                std::abs(realBatteryPercentage - batteryPercentage));
 
         lastBatteryEventTime = curTime;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         EV_INFO << "Background Message" << endl;
         // TODO: Handle
         delete msg;
+    } else if (msg == collectMeasurementsEvent) {
+        EV_INFO << "Periodic data collection" << std::endl;
+
+        if (realBatteryPercentage < par("inconvenientBatteryThreshold").doubleValue()) {
+            realBatteryCritical.record(1);
+        } else {
+            realBatteryCritical.record(0);
+        }
+
+        if (batteryPercentage < par("inconvenientBatteryThreshold").doubleValue()) {
+            theoreticalBatteryCritical.record(1);
+        } else {
+            theoreticalBatteryCritical.record(0);
+        }
+
+        scheduleAt(
+                simTime() + par("periodicStatsCollectionInterval").intValue(),
+                msg);
     } else {
         EV_ERROR << "Unknown message type" << endl;
         delete msg;
     }
-
 }
 
 SimplePercentageBattery::SimplePercentageBattery() {
     batteryPercentage = 0.5;
-    expectedBatteryPercentage = 0.5;
+    realBatteryPercentage = 0.5;
     lastBatteryEventTime = 0.0;
     initialized = false;
 
-    batteryPercentageValues.setName("Calculated battery percentage");
-    expectedBatteryPercentageValues.setName("Expected battery percentage");
+    collectMeasurementsEvent = nullptr;
+
+    theoreticalBatteryPercentageValues.setName("Calculated battery percentage");
+    realBatteryPercentageValues.setName("Real battery percentage");
     batteryPercentageDelta.setName(
             "Delta between expected and calculated battery percentage");
+
+    theoreticalBatteryCritical.setName("Theoretical Battery: critical");
+    realBatteryCritical.setName("Real Battery: critical");
+
 }
 
 SimplePercentageBattery::~SimplePercentageBattery() {
-    // TODO Auto-generated destructor stub
+    cancelAndDelete(collectMeasurementsEvent);
 }
 
 double SimplePercentageBattery::getBatteryPercentage() {
@@ -150,7 +178,6 @@ bool SimplePercentageBattery::isInitialized() {
 void SimplePercentageBattery::initialize() {
     EV_INFO << "Init battery" << endl;
     // TODO: Init?
-    initialized = true;
 
     // Add charging values
     const char *chargePerHourChar = par("chargePerHourArray").stringValue();
@@ -159,13 +186,17 @@ void SimplePercentageBattery::initialize() {
     EV_INFO << "Charging Values: " << chargePerHourArray.size() << endl;
 
     // Add discharging values
-    const char *dischargePerHourChar = par("dischargePerHourArray").stringValue();
+    const char *dischargePerHourChar =
+            par("dischargePerHourArray").stringValue();
     //EV_INFO << "STRING FROM CONFIG: " << dischargePerHourChar << endl;
     addToMap(dischargePerHourChar, dischargePerHourArray);
     EV_INFO << "Discharging Values: " << dischargePerHourArray.size() << endl;
 
     //EV_INFO << "#### " << getClosestValue(33, dischargePerHourArray) << endl;
     //EV_INFO << "#### " << getClosestValue(33, chargePerHourArray) << endl;
+
+    collectMeasurementsEvent = new cMessage("collectMeasurements");
+    scheduleAt(0, collectMeasurementsEvent);
 }
 
 void SimplePercentageBattery::addToMap(const char *str,
@@ -208,7 +239,7 @@ void SimplePercentageBattery::refreshDisplay() const {
     char buf[40];
     if (par("detailedStatus"))
         sprintf(buf, "is: %.2f%%, should: %.2f%%", batteryPercentage * 100.0,
-                expectedBatteryPercentage * 100.0);
+                realBatteryPercentage * 100.0);
     else
         sprintf(buf, "Value: %.2f%%", batteryPercentage * 100.0);
     getDisplayString().setTagArg("t", 0, buf);

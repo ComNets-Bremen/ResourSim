@@ -71,15 +71,20 @@ private:
      */
     float getClosestValue(float value, std::map<int, float> &m);
 
+    cMessage *collectMeasurementsEvent;
+
     std::map<int,float> chargePerHourArray;
     std::map<int,float> dischargePerHourArray;
 
     double batteryPercentage;
-    double expectedBatteryPercentage;
+    double realBatteryPercentage;
 
-    cOutVector batteryPercentageValues;
-    cOutVector expectedBatteryPercentageValues;
+    cOutVector theoreticalBatteryPercentageValues;
+    cOutVector realBatteryPercentageValues;
     cOutVector batteryPercentageDelta;
+
+    cOutVector theoreticalBatteryCritical;
+    cOutVector realBatteryCritical;
 
     bool initialized;
     simtime_t lastBatteryEventTime;
