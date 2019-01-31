@@ -33,6 +33,7 @@ cplusplus {{
            WIFI_SCANNING = 10,
            WIFI_SUSPENDED = 11,
            WIFI_VERIFYING_POOR_LINK = 12,
+           WIFI_UNKNOWN = -1,
     };
 
 	// Return the WiFi status as a string from the enum
@@ -50,6 +51,7 @@ cplusplus {{
                 {WIFI_SCANNING, "WIFI_SCANNING"},
                 {WIFI_SUSPENDED, "WIFI_SUSPENDED"},
                 {WIFI_VERIFYING_POOR_LINK, "WIFI_VERIFYING_POOR_LINK"},
+                {WIFI_UNKNOWN, "WIFI_UNKNOWN"},
             };
         return WiFiStatusCodeMap[code];
     }
@@ -57,6 +59,51 @@ cplusplus {{
     // Return the WiFi status as a string from an int
     static inline std::string getWiFiStatusString(int code){
         return getWiFiStatusString(static_cast<WiFiStatusCode>(code));
+    }
+    
+    // Convert a string code back to the enum
+    static inline WiFiStatusCode getWiFiStatusCode(std::string code){
+		if (code == "WIFI_AUTHENTICATING")
+			return WIFI_AUTHENTICATING;
+        if (code == "WIFI_BLOCKED")
+        	return WIFI_BLOCKED;
+       	if (code == "WIFI_CAPTIVE_PORTAL_CHECK")
+       		return WIFI_CAPTIVE_PORTAL_CHECK;
+       	if (code == "WIFI_CONNECTED")
+       		return WIFI_CONNECTED;
+       	if (code == "WIFI_CONNECTING")
+       		return WIFI_CONNECTING;
+       	if (code == "WIFI_DISCONNECTED")
+       		return WIFI_DISCONNECTED;
+       	if (code == "WIFI_FAILED")
+       		return WIFI_FAILED;
+       	if (code == "WIFI_IDLE")
+       		return WIFI_IDLE;
+       	if (code == "WIFI_OBTAINING_IPADDR")
+       		return WIFI_OBTAINING_IPADDR;
+       	if (code == "WIFI_SCANNING")
+       		return WIFI_SCANNING;
+       	if (code == "WIFI_SUSPENDED")
+       		return WIFI_SUSPENDED;
+       	if (code == "WIFI_VERIFYING_POOR_LINK")
+       		return WIFI_VERIFYING_POOR_LINK;
+       	return WIFI_UNKNOWN;
+    }
+    
+    // Check if WiFi is occupied by the user
+    static bool getWiFiIsOccupied(int code){
+        switch(static_cast<WiFiStatusCode>(code)){
+            case WIFI_CONNECTING:
+            case WIFI_CONNECTED:
+            case WIFI_AUTHENTICATING:
+            case WIFI_OBTAINING_IPADDR:
+            case WIFI_VERIFYING_POOR_LINK:
+            	return true;
+            	break;
+            default:
+            	return false;
+        }
+        return false;        
     }
 }}
 
