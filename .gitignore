@@ -36,6 +36,7 @@ out
 # Binaries
 OMNeT++
 Resoursim
+Resoursim_dbg
 
 # Analysis
 *.anf
@@ -45,3 +46,5 @@ results
 
 # cmdenv log file
 .cmdenv-log
+
+.metadata
