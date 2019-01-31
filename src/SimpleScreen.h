@@ -52,12 +52,15 @@ class SimpleScreen : public BaseResourceMode<ScreenEventMessage>
     DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
     cMessage *backgroundServiceEndMessage;
 
+    cMessage *collectMeasurementsEvent;
+
     // statistics
     long collisionBackground = 0;
     long collisionUser = 0;
     long collisionSelf = 0;
 
     cOutVector screenStatusValues;
+    cOutVector screenStatusPropability;
 };
 
 } //namespace
