@@ -18,11 +18,9 @@
  * forwards all messages received via the in ports to all out ports
  */
 
-
 // TODO: Implement the following:
 // Can be neglected for the first step: unknown, traffic
 // More intelligent scheduling? Currently, everything is forwarded to all output ports
-
 
 #include "EventManager.h"
 
@@ -99,6 +97,9 @@ void EventManager::handleMessage(cMessage *msg) {
         }
     } else {
         EV_ERROR << "Undefined message Type" << endl;
+        EV_INFO << "Forwarding to all connected entities" << std::endl;
+        for (int i = 0; i < gateSize("out"); i++)
+            send(msg->dup(), "out", i);
         delete msg;
     }
 
