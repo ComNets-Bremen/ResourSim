@@ -34,6 +34,7 @@ OBJS = \
     $O/src/BackgroundEventContainer.o \
     $O/src/BackgroundServiceInjector.o \
     $O/src/BaseResourceMode.o \
+    $O/src/BucketBattery.o \
     $O/src/EventManager.o \
     $O/src/PhoneEventInjector.o \
     $O/src/SimpleAirplaneMode.o \
@@ -43,6 +44,7 @@ OBJS = \
     $O/src/SimpleScreen.o \
     $O/src/SimpleWiFi.o \
     $O/src/background_messages/BackgroundEventMessage_m.o \
+    $O/src/capacity_messages/CapacityEvent_m.o \
     $O/src/event_messages/AirplaneModeEventMessage_m.o \
     $O/src/event_messages/BaseEventMessage_m.o \
     $O/src/event_messages/BatteryEventMessage_m.o \
@@ -56,6 +58,7 @@ OBJS = \
 # Message files
 MSGFILES = \
     src/background_messages/BackgroundEventMessage.msg \
+    src/capacity_messages/CapacityEvent.msg \
     src/event_messages/AirplaneModeEventMessage.msg \
     src/event_messages/BaseEventMessage.msg \
     src/event_messages/BatteryEventMessage.msg \

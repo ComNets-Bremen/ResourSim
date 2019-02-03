@@ -23,6 +23,8 @@ simple SimpleWiFi
         @display("i=status/wifi_neutral");
         volatile int statsWindowSize @unit("s")	= default(3600s);
         volatile int periodicStatsCollectionInterval @unit("s") = default(240s);
+        
+        volatile double txCurrentDrawn = default(0.03); // 30 mA, TODO: Check
     gates:
         input in[];
         output out[];

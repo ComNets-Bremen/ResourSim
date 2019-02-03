@@ -34,32 +34,33 @@ SimpleWiFi::~SimpleWiFi() {
 
 void SimpleWiFi::initialize() {
     EV << "Init WiFi status" << endl;
-    EV_INFO << "Window Size for statistics: " << par("statsWindowSize").intValue() << "s" << std::endl;
+    EV_INFO << "Window Size for statistics: "
+                   << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
     // TODO: Init something?
     initialized = true;
 }
 
-
 /**
  * This function is used to create the required statistics out of the given dataset.
  *
  * It is used as a parameter for the calcStats function
  */
-static std::map<std::string, double> statisticFunction(std::deque<WiFiEventMessage *> msg, int windowSize){
+static std::map<std::string, double> statisticFunction(
+        std::deque<WiFiEventMessage *> msg, int windowSize) {
     std::map<std::string, double> resultMap;
 
     std::string lastStatus;
     simtime_t lastTimestamp;
     bool lastSet = false;
 
-    double period = std::min((double)windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
+    double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
 
-    for (WiFiEventMessage *e : msg){
+    for (WiFiEventMessage *e : msg) {
         std::string status = getWiFiStatusString(e->getWifi_status());
 
-        if (!lastSet){
+        if (!lastSet) {
             //EV_INFO << "LAST SET" << std::endl;
             // first run: Store start values
             lastStatus = status;
@@ -68,11 +69,11 @@ static std::map<std::string, double> statisticFunction(std::deque<WiFiEventMessa
             else
                 lastTimestamp = simTime() - period;
             lastSet = true;
-        } else if (msg.size() > 1){
+        } else if (msg.size() > 1) {
             //EV_INFO << "Continue..." << std::endl;
             // Add values only if we have more than one
 
-            if (resultMap.count(status) == 0){
+            if (resultMap.count(status) == 0) {
                 // Add time for this status
                 resultMap[status] = 0.0;
             }
@@ -90,20 +91,20 @@ static std::map<std::string, double> statisticFunction(std::deque<WiFiEventMessa
     } // for
 
     // Add remaining values if the current time and the last timestamp are different
-    if (lastSet && lastTimestamp != simTime() && msg.size() > 0){
+    if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
         //EV_INFO << "FILLING..." << std::endl;
         resultMap[lastStatus] = (simTime() - lastTimestamp).dbl() / period;
     }
 
     double checkNumber = 0; // Check if the sum of all values is 1 and print the results
     EV_INFO << "RESULTS: " << std::endl;
-    for (auto r: resultMap){
+    for (auto r : resultMap) {
         EV_INFO << r.first << ": " << r.second << std::endl;
         checkNumber += r.second;
     }
     EV_INFO << "END RESULTS" << std::endl;
 
-    if ((checkNumber < 0.99 || checkNumber > 1.01) && msg.size() > 0){
+    if ((checkNumber < 0.99 || checkNumber > 1.01) && msg.size() > 0) {
         EV_ERROR << "DOUBLE NOT EQUAL 1.0. Value: " << checkNumber << std::endl;
     }
 
@@ -119,7 +120,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             return;
         }
 
-        if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND){
+        if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
             collisionUser++;
             delete msg;
@@ -134,11 +135,14 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         wifiStatus = wifiMsg->getWifi_status();
         wifiStatusValues.record(wifiStatus);
 
-
-        if (getWiFiIsOccupied(wifiStatus))
+        if (getWiFiIsOccupied(wifiStatus)) {
             deviceState = DEVICE_STATE_OCCUPIED_USER;
-        else
+            startOccupiedTime = simTime();
+        } else {
             deviceState = DEVICE_STATE_FREE;
+            simtime_t duration = simTime() - startOccupiedTime;
+            sendBatteryConsumptionEvent(duration);
+        }
 
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
@@ -150,10 +154,13 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             if ((deviceState == DEVICE_STATE_FREE)
                     or (deviceState == DEVICE_STATE_UNKNOWN)) {
                 deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+                startOccupiedTime = simTime();
+
                 backgroundServiceEndMessage = new cMessage(
                         "End Background Service");
-                scheduleAt(simTime() + backgroundEventMessage->getDuration(), backgroundServiceEndMessage);
-            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND){
+                scheduleAt(simTime() + backgroundEventMessage->getDuration(),
+                        backgroundServiceEndMessage);
+            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
                 EV_INFO << "self collision" << endl;
                 collisionSelf++;
             } else {
@@ -163,18 +170,22 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         delete msg;
     } else if (msg == backgroundServiceEndMessage) {
         EV_INFO << "End background service" << endl;
+        simtime_t duration = simTime() - startOccupiedTime;
+        // Send message to battery
+        sendBatteryConsumptionEvent(duration);
         deviceState = DEVICE_STATE_FREE;
         delete msg;
-    } else if (msg == collectMeasurementsEvent){
+    } else if (msg == collectMeasurementsEvent) {
         // Handle regular statistic events
         cleanupMessagesForStats();
         // printEventsForStats();
-        std::map<std::string, double> result = calcUserStats(par("statsWindowSize").intValue(), statisticFunction);
+        std::map<std::string, double> result = calcUserStats(
+                par("statsWindowSize").intValue(), statisticFunction);
         // record on / off
 
         double on = 0.0;
         double off = 0.0;
-        for (auto s : result){
+        for (auto s : result) {
             //EV_INFO << "CHECK ME: " << s.first << std::endl;
             if (getWiFiIsOccupied(getWiFiStatusCode(s.first)))
                 on += s.second;
@@ -182,13 +193,15 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 off += s.second;
         }
 
-        EV_INFO << "Periodic WiFi status: on: " << on << ", off: " << off << " in the last " << par("statsWindowSize").intValue() << "s" << std::endl;
+        EV_INFO << "Periodic WiFi status: on: " << on << ", off: " << off
+                       << " in the last " << par("statsWindowSize").intValue()
+                       << "s" << std::endl;
         //EV_INFO << "NUM OF PACKETS " << getNumOfMessagesForStats() << std::endl;
         // TODO Store for statistics!!!
         wifiStatusOn.record(on);
         wifiStatusOff.record(off);
 
-        switch (deviceState){
+        switch (deviceState) {
         case DEVICE_STATE_UNKNOWN:
             wifiDeviceState.record(-1);
             break;
@@ -203,10 +216,12 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             break;
         default:
             wifiDeviceState.record(-2);
-            EV_INFO << "Should not happen..."  << std::endl;
+            EV_INFO << "Should not happen..." << std::endl;
         }
 
-        scheduleAt(simTime()+par("periodicStatsCollectionInterval").intValue(), msg);
+        scheduleAt(
+                simTime() + par("periodicStatsCollectionInterval").intValue(),
+                msg);
         return;
     } else {
         EV_ERROR << "Unhandled message" << endl;
@@ -218,7 +233,8 @@ void SimpleWiFi::refreshDisplay() const {
     char buf[40];
     sprintf(buf, "WiFi status: %s", getWiFiStatusString(wifiStatus).c_str());
     getDisplayString().setTagArg("t", 0, buf);
-    if (deviceState == DEVICE_STATE_OCCUPIED_USER || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND)
+    if (deviceState == DEVICE_STATE_OCCUPIED_USER
+            || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND)
         getDisplayString().setTagArg("i", 0, "status/wifi_green");
     else
         getDisplayString().setTagArg("i", 0, "status/wifi_neutral");
@@ -228,6 +244,20 @@ void SimpleWiFi::finish() {
     recordScalar("#collisionUser", collisionUser);
     recordScalar("#collisionBackground", collisionBackground);
     recordScalar("#collisionSelf", collisionSelf);
+}
+
+void SimpleWiFi::sendBatteryConsumptionEvent(simtime_t duration) {
+    CapacityEvent *cEvent = new CapacityEvent();
+    cEvent->setSenderType(CAPACITY_EVENT_TYPE_WIFI);
+    double chargeChange = -1 * par("txCurrentDrawn").doubleValue()
+            * duration.dbl();
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    cEvent->setChargeChange(chargeChange); // difference in Coulomb
+
+    EV_INFO << "OUT: " << gateSize("out") << std::endl;
+    for (int i = 0; i < gateSize("out"); i++)
+        send(cEvent->dup(), "out", i);
+    delete cEvent;
 }
 
 } //namespace

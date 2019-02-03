@@ -21,6 +21,7 @@
 #include <algorithm>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "capacity_messages/CapacityMessages.h"
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
 
@@ -44,6 +45,7 @@ class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void sendBatteryConsumptionEvent(simtime_t duration);
 
   private:
     bool initialized = false;
@@ -61,6 +63,8 @@ class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
     long collisionBackground = 0;
     long collisionUser = 0;
     long collisionSelf = 0;
+
+    simtime_t startOccupiedTime;
 
     cMessage *collectMeasurementsEvent;
     cMessage *backgroundServiceEndMessage;
