@@ -1,0 +1,19 @@
+/*
+ * CapacityTypeDefinitions.h
+ *
+ *  Created on: Feb 2, 2019
+ *      Author: jd
+ */
+
+#ifndef CAPACITY_MESSAGES_CAPACITYTYPEDEFINITIONS_H_
+#define CAPACITY_MESSAGES_CAPACITYTYPEDEFINITIONS_H_
+
+enum CapacityEventType
+{
+    CAPACITY_EVENT_TYPE_WIFI,
+    CAPACITY_EVENT_TYPE_UNKNOWN = -1,
+};
+
+
+
+#endif /* CAPACITY_MESSAGES_CAPACITYTYPEDEFINITIONS_H_ */
