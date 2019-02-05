@@ -36,7 +36,8 @@ simple BucketBattery
 
         // ~3hrs charging
         // 9613 C total capacity in 3 hrs = 3204 C/h average charge
-        volatile double batteryChargeCoulombPerHour = default(3203)
+        volatile double batteryChargeCoulombPerHour = default(3203);
+
         @display("i=status/battery_neutral");
 
     gates:

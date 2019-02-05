@@ -103,6 +103,14 @@ void BucketBattery::recalculateBatteryCharge() {
     batteryCharge = std::fmin(batteryCharge, par("batteryCapacityCoulomb")); // Bucket model cannot be fuller than full
     batteryCharge = std::fmax(batteryCharge, 0); // Or less than null
     lastBatteryStateChange = simTime();
+
+    if (batteryCharge/par("batteryCapacityCoulomb").doubleValue() < par("inconvenientBatteryThreshold").doubleValue()){
+        // Critical battery value
+        batteryCritical.record(1);
+    } else {
+        // battery level okay
+        batteryCritical.record(0);
+    }
 }
 
 double BucketBattery::getBatteryChargeCoulomb() {
@@ -133,6 +141,7 @@ BucketBattery::BucketBattery() {
 
     currentBatteryCharge.setName("Current capacity in C");
     currentBatteryPercentage.setName("Current capacity in %");
+    batteryCritical.setName("Battery critical");
 }
 
 BucketBattery::~BucketBattery() {

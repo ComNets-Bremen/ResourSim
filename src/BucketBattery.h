@@ -51,6 +51,7 @@ private:
 
     cOutVector currentBatteryCharge;   // C
     cOutVector currentBatteryPercentage; // %
+    cOutVector batteryCritical; // 1/0
 };
 
 } //namespace
