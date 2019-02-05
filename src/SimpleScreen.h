@@ -21,6 +21,7 @@
 #include <algorithm>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "capacity_messages/CapacityMessages.h"
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
 
@@ -40,11 +41,14 @@ class SimpleScreen : public BaseResourceMode<ScreenEventMessage>
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void sendBatteryConsumptionEvent(simtime_t duration);
 
 
   private:
     bool initialized = false;
     bool screenOn = false;
+
+    simtime_t screenSwitchedOn = 0;
 
     // We assume the screen as an indicator if the device is actively being used.
     // The user should not face problems due to an (uninterruptible) task running in the background

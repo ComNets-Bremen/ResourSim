@@ -24,6 +24,8 @@ simple SimpleScreen
     	@display("i=status/screen_off");
     	volatile int statsWindowSize @unit("s")	= default(3600s);
     	volatile int periodicStatsCollectionInterval @unit("s") = default(240s);
+    	
+    	volatile double screenCurrentDrawn = default(0.1); // 100 mA, TODO: check
     gates:
         input in[];
         output out[];

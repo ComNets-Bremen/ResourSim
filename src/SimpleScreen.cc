@@ -133,10 +133,15 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         screenStatusValues.record(screenMsg->getScreenOn());
         screenOn = screenMsg->getScreenOn();
 
-        if (screenOn)
+        if (screenOn){
             deviceState = DEVICE_STATE_OCCUPIED_USER;
-        else
+            screenSwitchedOn = simTime();
+        } else {
             deviceState = DEVICE_STATE_FREE;
+            simtime_t duration = simTime() - screenSwitchedOn;
+            EV_INFO << "Screen duration " << duration << std::endl;
+            sendBatteryConsumptionEvent(duration);
+        }
 
         delete screenMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
@@ -213,6 +218,20 @@ void SimpleScreen::refreshDisplay() const {
         getDisplayString().setTagArg("i", 0, "status/screen_on");
     else
         getDisplayString().setTagArg("i", 0, "status/screen_off");
+}
+
+void SimpleScreen::sendBatteryConsumptionEvent(simtime_t duration) {
+    CapacityEvent *cEvent = new CapacityEvent();
+    cEvent->setSenderType(CAPACITY_EVENT_TYPE_SCREEN);
+    double chargeChange = -1 * par("screenCurrentDrawn").doubleValue()
+            * duration.dbl();
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    cEvent->setChargeChange(chargeChange); // difference in Coulomb
+
+    EV_INFO << "OUT: " << gateSize("out") << std::endl;
+    for (int i = 0; i < gateSize("out"); i++)
+        send(cEvent->dup(), "out", i);
+    delete cEvent;
 }
 
 } //namespace
