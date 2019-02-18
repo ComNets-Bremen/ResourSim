@@ -45,6 +45,8 @@ void SimpleCellular::handleMessage(cMessage *msg) {
             delete msg;
             return;
         }
+        bool previousCellularIsUsed = cellularIsUsed;
+
         CellularEventMessage *cellularMsg = check_and_cast<
                 CellularEventMessage *>(msg);
         cellularStatus = cellularMsg->getCellular_state();
@@ -52,7 +54,7 @@ void SimpleCellular::handleMessage(cMessage *msg) {
         cellularStatusValues.record(cellularStatus);
 
         switch (cellularStatus) {
-        // TODO: Check if all offers internet connectivity
+        // TODO: Check if all offer Internet connectivity
         case CELLULAR_CONNECTED:
         case CELLULAR_CONNECTING:
             cellularIsUsed = true;
@@ -61,6 +63,18 @@ void SimpleCellular::handleMessage(cMessage *msg) {
             cellularIsUsed = false;
         }
         // TODO: Check if transition is valid?
+
+        // Energy consumption checks
+        if (cellularIsUsed != previousCellularIsUsed){
+            // State change
+            if (cellularIsUsed){
+                // Switched on
+                startOccupiedTime = simTime();
+            } else {
+                simtime_t duration = simTime() - startOccupiedTime;
+                sendBatteryConsumptionEvent(duration);
+            }
+        }
 
         delete cellularMsg;
     } else {
@@ -80,6 +94,21 @@ void SimpleCellular::refreshDisplay() const {
         getDisplayString().setTagArg("i", 0, "status/cell_active");
     else
         getDisplayString().setTagArg("i", 0, "status/cell_idle");
+}
+
+void SimpleCellular::sendBatteryConsumptionEvent(simtime_t duration) {
+    CapacityEvent *cEvent = new CapacityEvent();
+    cEvent->setSenderType(CAPACITY_EVENT_TYPE_CELLULAR);
+    double chargeChange = -1 * par("cellularCurrentDrawn").doubleValue()
+            * duration.dbl();
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    cEvent->setChargeChange(chargeChange); // difference in Coulomb
+
+    if (gateSize("out") < 1) throw cRuntimeError("Invalid number of output gates: %d; must be >=1", gateSize("out"));
+
+    for (int i = 0; i < gateSize("out"); i++)
+        send(cEvent->dup(), "out", i);
+    delete cEvent;
 }
 
 } //namespace

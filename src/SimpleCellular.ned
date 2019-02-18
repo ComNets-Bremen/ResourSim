@@ -19,7 +19,9 @@ package eventsimulator;
 
 simple SimpleCellular
 {
-    @display("i=status/cell_idle");
+    parameters:
+        @display("i=status/cell_idle");
+        volatile double cellularCurrentDrawn = default(0.2); // TODO: Check and put a meaningful value
     gates:
         input in[];
         output out[];

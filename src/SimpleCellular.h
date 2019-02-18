@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "capacity_messages/CapacityMessages.h"
 
 using namespace omnetpp;
 
@@ -37,12 +38,15 @@ class SimpleCellular : public cSimpleModule
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
 
+    void sendBatteryConsumptionEvent(simtime_t duration);
   private:
     bool initialized = false;
     int cellularStatus = -1;
     bool cellularIsUsed = false;
     std::string networkTypeName = "NOT_INITIALIZED";
     cOutVector cellularStatusValues;
+
+    simtime_t startOccupiedTime;
 };
 
 } //namespace
