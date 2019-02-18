@@ -40,6 +40,8 @@ class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
 
     void refreshDisplay() const;
 
+    DeviceStates getDeviceState() const;
+
     void finish();
 
   protected:
