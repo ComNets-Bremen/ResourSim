@@ -22,6 +22,9 @@ Define_Module(BucketBattery);
 void BucketBattery::initialize() {
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
+    batteryPercentageSignalId = registerSignal(BATTERY_PERCENTAGE_SIGNAL);
+
+    batteryPercentageInconvinientSignalId = registerSignal(BATTERY_INCONVENIENT_SIGNAL);
 
     batteryCharge = 0.5 * par("batteryCapacityCoulomb").doubleValue(); // We start with a half filled battery
 }
@@ -61,6 +64,8 @@ void BucketBattery::handleMessage(cMessage *msg) {
             batteryCharge = std::fmax(batteryCharge, 0); // Or less than null
         }
 
+        recalculateBatteryCharge();
+
         // Tidy up
         lastStateIsCharging = currentBatteryState;
         lastBatteryStateChange = simTime();
@@ -76,20 +81,39 @@ void BucketBattery::handleMessage(cMessage *msg) {
                 simTime() + par("periodicStatsCollectionInterval").intValue(),
                 msg);
     } else if (dynamic_cast<CapacityEvent *>(msg) != nullptr) {
+        EV_INFO << "Recalc battery stat start: " << batteryCharge << std::endl;
         CapacityEvent *cEvent = dynamic_cast<CapacityEvent *>(msg);
-        EV_INFO << "Changing capacity by " << cEvent->getChargeChange() << "C" << std::endl;
+        EV_INFO << "Changing capacity by " << cEvent->getChargeChange() << "C"
+                       << std::endl;
         batteryCharge += cEvent->getChargeChange();
         recalculateBatteryCharge();
         delete cEvent;
+        EV_INFO << "Recalc battery stat end: " << batteryCharge << std::endl;
     } else {
         // Not for us
         delete msg;
+    }
+
+    batteryIsCharging.record(lastStateIsCharging);
+
+    if (mayHaveListeners(batteryPercentageSignalId)
+            || mayHaveListeners(batteryPercentageInconvinientSignalId)) {
+        double currentCharge = getBatteryChargePercent();
+        emit(batteryPercentageSignalId, currentCharge);
+
+        emit(batteryPercentageInconvinientSignalId,
+                currentCharge
+                        < par("inconvenientBatteryThreshold").doubleValue());
+
+        EV_INFO << "EMITTED SIGNAL BATTERY" << std::endl;
     }
 }
 
 void BucketBattery::recalculateBatteryCharge() {
     simtime_t duration = simTime() - lastBatteryStateChange;
     double coulomb;
+    EV_INFO << "Recalc battery stat start: " << batteryCharge
+                   << " is charging: " << lastStateIsCharging << std::endl;
     if (lastStateIsCharging)
         coulomb = duration.dbl()
                 * par("batteryChargeCoulombPerHour").doubleValue() / 60.0
@@ -99,18 +123,22 @@ void BucketBattery::recalculateBatteryCharge() {
                 * par("batteryDischargeCoulombPerHour").doubleValue() / 60.0
                 / 60.0;
 
+    EV_INFO << "Regular (dis)charge: " << coulomb << "C" << std::endl;
+
     batteryCharge += coulomb;
     batteryCharge = std::fmin(batteryCharge, par("batteryCapacityCoulomb")); // Bucket model cannot be fuller than full
     batteryCharge = std::fmax(batteryCharge, 0); // Or less than null
     lastBatteryStateChange = simTime();
 
-    if (batteryCharge/par("batteryCapacityCoulomb").doubleValue() < par("inconvenientBatteryThreshold").doubleValue()){
+    if (batteryCharge / par("batteryCapacityCoulomb").doubleValue()
+            < par("inconvenientBatteryThreshold").doubleValue()) {
         // Critical battery value
         batteryCritical.record(1);
     } else {
         // battery level okay
         batteryCritical.record(0);
     }
+    EV_INFO << "Recalc battery stat end: " << batteryCharge << std::endl;
 }
 
 double BucketBattery::getBatteryChargeCoulomb() {
@@ -142,6 +170,7 @@ BucketBattery::BucketBattery() {
     currentBatteryCharge.setName("Current capacity in C");
     currentBatteryPercentage.setName("Current capacity in %");
     batteryCritical.setName("Battery critical");
+    batteryIsCharging.setName("Is Charging");
 }
 
 BucketBattery::~BucketBattery() {

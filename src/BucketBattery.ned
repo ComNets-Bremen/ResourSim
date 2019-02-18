@@ -39,6 +39,9 @@ simple BucketBattery
         volatile double batteryChargeCoulombPerHour = default(3203);
 
         @display("i=status/battery_neutral");
+        
+        @signal[batteryPercentage](type=double);
+        @signal[batteryPercentageInconvinient](type=bool);
 
     gates:
         input in[];

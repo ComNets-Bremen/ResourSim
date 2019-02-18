@@ -22,6 +22,7 @@
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
 #include "warning_messages/BatteryCriticalWarningMessage_m.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
@@ -52,6 +53,10 @@ private:
     cOutVector currentBatteryCharge;   // C
     cOutVector currentBatteryPercentage; // %
     cOutVector batteryCritical; // 1/0
+    cOutVector batteryIsCharging; // 1/0
+
+    simsignal_t batteryPercentageSignalId;
+    simsignal_t batteryPercentageInconvinientSignalId;
 };
 
 } //namespace
