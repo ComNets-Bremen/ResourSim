@@ -21,7 +21,6 @@
 // TODO: Implement the following:
 // Can be neglected for the first step: unknown, traffic
 // More intelligent scheduling? Currently, everything is forwarded to all output ports
-
 #include "EventManager.h"
 
 namespace eventsimulator {
@@ -30,18 +29,40 @@ Define_Module(EventManager);
 
 void EventManager::initialize() {
     EV_INFO << "Started" << endl;
+    isDeviceCritical = false;
+    isDeviceDead = false;
+    getSimulation()->getSystemModule()->subscribe(BATTERY_PERCENTAGE_SIGNAL, this);
+    getSimulation()->getSystemModule()->subscribe(BATTERY_INCONVENIENT_SIGNAL, this);
+}
+
+EventManager::~EventManager(){
+    if(getSimulation()->getSystemModule()->isSubscribed(BATTERY_PERCENTAGE_SIGNAL, this)) getSimulation()->getSystemModule()->unsubscribe(BATTERY_PERCENTAGE_SIGNAL, this);
+    if(getSimulation()->getSystemModule()->isSubscribed(BATTERY_INCONVENIENT_SIGNAL, this)) getSimulation()->getSystemModule()->unsubscribe(BATTERY_INCONVENIENT_SIGNAL, this);
 }
 
 void EventManager::handleMessage(cMessage *msg) {
+    // Device dead: Only charging messages can pass
+    if (par("stopForwardingDeviceDead").boolValue() && isDeviceDead && dynamic_cast<BatteryEventMessage *>(msg) == nullptr){
+        delete msg;
+        return;
+    }
 
-    //if (strcmp(msg->getName(), "BackgroundEventMessage") == 0){
     if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         // Handle Background Events
 
         EV_INFO << "Background Message" << endl;
         BackgroundEventMessage *backgroundEventMessage = check_and_cast<
                 BackgroundEventMessage *>(msg);
+        if (backgroundEventMessage == nullptr) {
+            EV_ERROR << "Casting error" << std::endl;
+            delete msg;
+            return;
+        }
 
+        // Implement the background service scheduling here!
+
+
+        // Forward to all nodes
         for (int i = 0; i < gateSize("out"); i++)
             send(msg->dup(), "out", i);
 
@@ -52,49 +73,26 @@ void EventManager::handleMessage(cMessage *msg) {
 
         BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
         if (message == nullptr) {
+            EV_ERROR << "Casting error" << std::endl;
             delete msg;
             return;
         }
         EV_INFO << "Message type: " << message->getPayloadType() << endl;
-
-        switch (message->getPayloadType()) {
-        case EVENT_TYPE_SCREEN:
-            //EV_INFO << "EVENT_TYPE_SCREEN" << endl;
-            handleScreenEvent (check_and_cast<ScreenEventMessage *>(msg));break;
-            case EVENT_TYPE_BATTERY:
-            //EV_INFO << "EVENT_TYPE_BATTERY" << endl;
-            handleBatteryEvent(check_and_cast<BatteryEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_WIFI:
-            //EV_INFO << "EVENT_TYPE_WIFI" << endl;
-            handleWiFiEvent(check_and_cast<WiFiEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_TRAFFIC:
-            //EV_INFO << "EVENT_TYPE_TRAFFIC" << endl;
-            handleTrafficEvent(check_and_cast<TrafficEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_CELLULAR:
-            //EV_INFO << "EVENT_TYPE_CELLULAR" << endl;
-            handleCellularEvent(check_and_cast<CellularEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_AIRPLANE_MODE:
-            //EV_INFO << "EVENT_TYPE_AIRPLANE_MODE" << endl;
-            handleAirplaneModeEvent(check_and_cast<AirplaneModeEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_BLUETOOTH:
-            //EV_INFO << "EVENT_TYPE_BLUETOOTH" << endl;
-            handleBluetoothEvent(check_and_cast<BluetoothEventMessage *>(msg));
-            break;
-            case EVENT_TYPE_UNKNOWN:
-            // Just the base event
-            //EV_INFO << "EVENT_TYPE_UNKNOWN" << endl;
-            handleUnknownEvent(message);
+        for (int i = 0; i < gateSize("out"); i++)
+            send(msg->dup(), "out", i);
+        delete msg;
+    } else if (dynamic_cast<CapacityEvent *>(msg) != nullptr) {
+        CapacityEvent *cEvent = check_and_cast<CapacityEvent *>(msg);
+        if (cEvent == nullptr) {
+            EV_ERROR << "Casting error" << std::endl;
             delete msg;
-            break;
-            default:
-            EV_ERROR << "Undefined Event" << endl;
-            delete msg;
+            return;
         }
+        EV_INFO << "Capacy event" << std::endl;
+        for (int i = 0; i < gateSize("out"); i++)
+            send(msg->dup(), "out", i);
+        delete msg;
+
     } else {
         EV_ERROR << "Undefined message Type" << endl;
         EV_INFO << "Forwarding to all connected entities" << std::endl;
@@ -102,75 +100,37 @@ void EventManager::handleMessage(cMessage *msg) {
             send(msg->dup(), "out", i);
         delete msg;
     }
-
 }
 
-void EventManager::handleScreenEvent(ScreenEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Screen Event: Screen on: "
-                   << msg->getScreenOn() << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
+void EventManager::refreshDisplay() const {
+    if (isDeviceDead)
+        getDisplayString().setTagArg("i", 0, "status/status_dead");
+    else if (isDeviceCritical)
+        getDisplayString().setTagArg("i", 0, "status/status_critical");
+    else
+        getDisplayString().setTagArg("i", 0, "status/status_okay");
 }
 
-void EventManager::handleBatteryEvent(BatteryEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Battery Event: percentage: "
-                   << msg->getPercentage() << " chg_ac: " << msg->getChg_ac()
-                   << " chg_usb: " << msg->getChg_usb() << " chg_wireless: "
-                   << msg->getChg_wireless() << " is_charging: "
-                   << msg->getIs_charging() << " absPercentage: "
-                   << msg->getTheoreticalAbsolutePercentage() << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
+void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b, cObject *details){
+    EV_INFO << "RECEIVED SIGNAL BOOL!!!" << signal << getSignalName(signal) <<  std::endl;
+    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)){
+        EV_INFO << "DEVICE inconvenient" << std::endl;
+        isDeviceCritical = b;
+    }
 }
 
-void EventManager::handleWiFiEvent(WiFiEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " WiFi Event: WiFi Status: "
-                   << getWiFiStatusString(msg->getWifi_status()) << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
+void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d, cObject *details){
+    EV_INFO << "RECEIVED SIGNAL DOUBLE!!!" << signal << getSignalName(signal) <<  std::endl;
+    if (signal == registerSignal(BATTERY_PERCENTAGE_SIGNAL)){
+        if (d < 0.01){
+            isDeviceDead = true;
+            EV_INFO << "DEVICE IS DEAD" << std::endl;
+        } else {
+            isDeviceDead = false;
+            EV_INFO << "DEVICE IS ALIVE" << std::endl;
+        }
+    }
 }
 
-void EventManager::handleTrafficEvent(TrafficEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Traffic Event: mobile_rx: "
-                   << msg->getMobile_rx() << " mobile_tx: "
-                   << msg->getMobile_tx() << " total_rx: " << msg->getTotal_rx()
-                   << " total_tx: " << msg->getTotal_tx() << endl;
-    delete msg;
-}
 
-void EventManager::handleCellularEvent(CellularEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Cellular Event: Cellular state: "
-                   << getCellularStatusString(msg->getCellular_state())
-                   << " type: " << msg->getCellular_type() << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
-}
-
-void EventManager::handleAirplaneModeEvent(AirplaneModeEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Airplane Mode Event: airplane mode on: "
-                   << msg->getAirplaneModeOn() << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
-}
-
-void EventManager::handleBluetoothEvent(BluetoothEventMessage *msg) {
-    EV_INFO << "@" << simTime() << " Bluetooth Event: Bluetooth Status: "
-                   << getBluetoothStatusString(msg->getBluetooth_status())
-                   << endl;
-    for (int i = 0; i < gateSize("out"); i++)
-        send(msg->dup(), "out", i);
-    delete msg;
-}
-
-void EventManager::handleUnknownEvent(BaseEventMessage *msg) {
-    EV_ERROR << "@" << simTime() << " Event is not defined!" << msg << endl;
-    delete msg;
-}
-}
-;
-// namespace
+};// namespace

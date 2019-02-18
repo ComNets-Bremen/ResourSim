@@ -19,6 +19,8 @@
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "capacity_messages/CapacityMessages.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
@@ -27,13 +29,22 @@ namespace eventsimulator {
 /**
  * Implements a basic event manager
  */
-class EventManager : public cSimpleModule
-{
-  protected:
+class EventManager: public cSimpleModule, public cListener {
+
+public:
+    //EventManager(){};
+    //EventManager(cComponent *component, simsignal_t signal): component(component), signal(signal) {}
+    virtual ~EventManager();
+    virtual void receiveSignal(cComponent *, simsignal_t, bool b, cObject *details);
+    virtual void receiveSignal(cComponent *, simsignal_t, double d, cObject *details);
+
+    void refreshDisplay() const;
+
+protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
 
-  private:
+private:
     void handleScreenEvent(ScreenEventMessage *msg);
     void handleBatteryEvent(BatteryEventMessage *msg);
     void handleWiFiEvent(WiFiEventMessage *msg);
@@ -42,6 +53,9 @@ class EventManager : public cSimpleModule
     void handleAirplaneModeEvent(AirplaneModeEventMessage *msg);
     void handleBluetoothEvent(BluetoothEventMessage *msg);
     void handleUnknownEvent(BaseEventMessage *msg);
+
+    bool isDeviceCritical;
+    bool isDeviceDead;
 
 };
 

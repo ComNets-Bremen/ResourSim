@@ -21,7 +21,10 @@ package eventsimulator;
 simple EventManager
 {
     parameters:
-        @display("i=block/dispatch");
+        //@display("i=block/dispatch");
+        @display("i=status/status_okay");
+        // Stop forwarding messages if device is dead
+        volatile bool stopForwardingDeviceDead = default(false);
     gates:
         input in[];
         output out[];
