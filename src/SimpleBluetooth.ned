@@ -19,7 +19,9 @@ package eventsimulator;
 
 simple SimpleBluetooth
 {
-    @display("i=status/bluetooth_neutral");
+    parameters:
+        @display("i=status/bluetooth_neutral");
+        volatile double bluetoothCurrentDrawn = default(0.03); // TODO: Check and put a meaningful value
     gates:
         input in[];
         output out[];

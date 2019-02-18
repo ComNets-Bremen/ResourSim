@@ -41,6 +41,8 @@ void SimpleBluetooth::handleMessage(cMessage *msg) {
             delete msg;
             return;
         }
+
+        bool previousBluetoothIsUsed = bluetoothIsUsed;
         BluetoothEventMessage *bluetoothMsg = check_and_cast<
                 BluetoothEventMessage *>(msg);
         bluetoothStatus = bluetoothMsg->getBluetooth_status();
@@ -58,6 +60,17 @@ void SimpleBluetooth::handleMessage(cMessage *msg) {
         // TODO: Check if transition is valid?
 
         delete bluetoothMsg;
+
+        // Handle energy consumption
+        if (previousBluetoothIsUsed != bluetoothIsUsed){
+            // State changed
+            if (bluetoothIsUsed){
+                startOccupiedTime = simTime();
+            } else {
+                simtime_t duration = simTime() - startOccupiedTime;
+                sendBatteryConsumptionEvent(duration);
+            }
+        }
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         EV_INFO << "Background Event Message" << endl;
         // TODO implement
@@ -78,6 +91,21 @@ void SimpleBluetooth::refreshDisplay() const {
         getDisplayString().setTagArg("i", 0, "status/bluetooth_green");
     else
         getDisplayString().setTagArg("i", 0, "status/bluetooth_neutral");
+}
+
+void SimpleBluetooth::sendBatteryConsumptionEvent(simtime_t duration) {
+    CapacityEvent *cEvent = new CapacityEvent();
+    cEvent->setSenderType(CAPACITY_EVENT_TYPE_BLUETOOTH);
+    double chargeChange = -1 * par("bluetoothCurrentDrawn").doubleValue()
+            * duration.dbl();
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    cEvent->setChargeChange(chargeChange); // difference in Coulomb
+
+    if (gateSize("out") < 1) throw cRuntimeError("Invalid number of output gates: %d; must be >=1", gateSize("out"));
+
+    for (int i = 0; i < gateSize("out"); i++)
+        send(cEvent->dup(), "out", i);
+    delete cEvent;
 }
 
 } //namespace

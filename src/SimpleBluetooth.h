@@ -19,6 +19,7 @@
 #include <omnetpp.h>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
+#include "capacity_messages/CapacityMessages.h"
 
 using namespace omnetpp;
 
@@ -35,12 +36,15 @@ class SimpleBluetooth : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+    void sendBatteryConsumptionEvent(simtime_t duration);
 
   private:
     bool initialized = false;
     int bluetoothStatus;
     bool bluetoothIsUsed = false;
     cOutVector bluetoothStatusValues;
+
+    simtime_t startOccupiedTime;
 };
 
 } //namespace
