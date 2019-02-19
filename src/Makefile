@@ -40,6 +40,7 @@ OBJS = \
     $O/SimpleAirplaneMode.o \
     $O/SimpleBluetooth.o \
     $O/SimpleCellular.o \
+    $O/SimpleHighPowerCpu.o \
     $O/SimplePercentageBattery.o \
     $O/SimpleScreen.o \
     $O/SimpleWiFi.o \
