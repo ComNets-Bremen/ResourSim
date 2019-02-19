@@ -31,18 +31,35 @@ void EventManager::initialize() {
     EV_INFO << "Started" << endl;
     isDeviceCritical = false;
     isDeviceDead = false;
-    getSimulation()->getSystemModule()->subscribe(BATTERY_PERCENTAGE_SIGNAL, this);
-    getSimulation()->getSystemModule()->subscribe(BATTERY_INCONVENIENT_SIGNAL, this);
+
+    sendSignal_calculateBatteryDiffsEvent = new cMessage(
+            CALCULATE_BATTERY_DIFFS);
+    scheduleAt(0, sendSignal_calculateBatteryDiffsEvent);
+
+    batteryRecalcId = registerSignal(CALCULATE_BATTERY_DIFFS);
+
+    getSimulation()->getSystemModule()->subscribe(BATTERY_PERCENTAGE_SIGNAL,
+            this);
+    getSimulation()->getSystemModule()->subscribe(BATTERY_INCONVENIENT_SIGNAL,
+            this);
 }
 
-EventManager::~EventManager(){
-    if(getSimulation()->getSystemModule()->isSubscribed(BATTERY_PERCENTAGE_SIGNAL, this)) getSimulation()->getSystemModule()->unsubscribe(BATTERY_PERCENTAGE_SIGNAL, this);
-    if(getSimulation()->getSystemModule()->isSubscribed(BATTERY_INCONVENIENT_SIGNAL, this)) getSimulation()->getSystemModule()->unsubscribe(BATTERY_INCONVENIENT_SIGNAL, this);
+EventManager::~EventManager() {
+    if (getSimulation()->getSystemModule()->isSubscribed(
+            BATTERY_PERCENTAGE_SIGNAL, this))
+        getSimulation()->getSystemModule()->unsubscribe(
+                BATTERY_PERCENTAGE_SIGNAL, this);
+    if (getSimulation()->getSystemModule()->isSubscribed(
+            BATTERY_INCONVENIENT_SIGNAL, this))
+        getSimulation()->getSystemModule()->unsubscribe(
+                BATTERY_INCONVENIENT_SIGNAL, this);
+    cancelAndDelete(sendSignal_calculateBatteryDiffsEvent);
 }
 
 void EventManager::handleMessage(cMessage *msg) {
     // Device dead: Only charging messages can pass
-    if (par("stopForwardingDeviceDead").boolValue() && isDeviceDead && dynamic_cast<BatteryEventMessage *>(msg) == nullptr){
+    if (par("stopForwardingDeviceDead").boolValue() && isDeviceDead
+            && dynamic_cast<BatteryEventMessage *>(msg) == nullptr) {
         delete msg;
         return;
     }
@@ -61,6 +78,14 @@ void EventManager::handleMessage(cMessage *msg) {
 
         // Implement the background service scheduling here!
 
+        if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
+                && isDeviceCritical) {
+            EV_INFO
+                           << "Ignoring background message: Device in inconvenient mode"
+                           << std::endl;
+            delete msg;
+            return;
+        }
 
         // Forward to all nodes
         for (int i = 0; i < gateSize("out"); i++)
@@ -68,6 +93,12 @@ void EventManager::handleMessage(cMessage *msg) {
 
         delete msg;
         return;
+    } else if (msg == sendSignal_calculateBatteryDiffsEvent) {
+        // Regular event, signal to recalc battery stats.
+        if (mayHaveListeners(batteryRecalcId))
+            emit(batteryRecalcId, true);
+        scheduleAt(simTime() + par("sendBatteryCollectSignalEvent").intValue(),
+                msg);
     } else if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
         // Phone events
 
@@ -111,18 +142,19 @@ void EventManager::refreshDisplay() const {
         getDisplayString().setTagArg("i", 0, "status/status_okay");
 }
 
-void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b, cObject *details){
-    EV_INFO << "RECEIVED SIGNAL BOOL!!!" << signal << getSignalName(signal) <<  std::endl;
-    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)){
+void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
+        cObject *details) {
+    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)) {
         EV_INFO << "DEVICE inconvenient" << std::endl;
         isDeviceCritical = b;
     }
 }
 
-void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d, cObject *details){
-    EV_INFO << "RECEIVED SIGNAL DOUBLE!!!" << signal << getSignalName(signal) <<  std::endl;
-    if (signal == registerSignal(BATTERY_PERCENTAGE_SIGNAL)){
-        if (d < 0.01){
+void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d,
+        cObject *details) {
+    if (signal == registerSignal(BATTERY_PERCENTAGE_SIGNAL)) {
+        EV_INFO << "Battery value: " << d << std::endl;
+        if (d < 0.01) {
             isDeviceDead = true;
             EV_INFO << "DEVICE IS DEAD" << std::endl;
         } else {
@@ -132,5 +164,6 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d, 
     }
 }
 
-
-};// namespace
+}
+;
+// namespace

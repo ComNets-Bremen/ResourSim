@@ -25,6 +25,9 @@ simple EventManager
         @display("i=status/status_okay");
         // Stop forwarding messages if device is dead
         volatile bool stopForwardingDeviceDead = default(false);
+        volatile int sendBatteryCollectSignalEvent @unit("s") = default(240s);
+        
+        volatile bool ignoreBackgroundEventsBatteryInconvenient = default(false);
     gates:
         input in[];
         output out[];

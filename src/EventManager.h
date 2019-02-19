@@ -57,6 +57,10 @@ private:
     bool isDeviceCritical;
     bool isDeviceDead;
 
+    simsignal_t batteryRecalcId;
+
+    cMessage *sendSignal_calculateBatteryDiffsEvent;
+
 };
 
 }; // namespace
