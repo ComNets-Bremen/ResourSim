@@ -24,6 +24,7 @@ import eventsimulator.SimpleWiFi;
 import eventsimulator.SimpleCellular;
 import eventsimulator.SimpleBluetooth;
 import eventsimulator.BackgroundServiceInjector;
+import eventsimulator.SimpleHighPowerCpu;
 
 
 network EventNetworkBucketBattery
@@ -66,6 +67,10 @@ network EventNetworkBucketBattery
             @display("p=148,277");
         }
 
+        cpu[1]: SimpleHighPowerCpu {
+
+            @display("p=53,218");
+        }
     connections:
         userEventInjector[0].out++ --> manager[0].in++;
         backgroundServiceInjector[0].out++ --> manager[0].in++;
@@ -75,6 +80,7 @@ network EventNetworkBucketBattery
         manager[0].out++ --> wifi[0].in++;
         manager[0].out++ --> cellular[0].in++;
         manager[0].out++ --> bluetooth[0].in++;
+        manager[0].out++ --> cpu[0].in++;
 
         wifi[0].out++ --> manager[0].in++;
         battery[0].out++ --> manager[0].in++;
@@ -82,4 +88,5 @@ network EventNetworkBucketBattery
         cellular[0].out++ --> manager[0].in++;
         bluetooth[0].out++ --> manager[0].in++;
         airplane[0].out++ --> manager[0].in++;
+        cpu[0].out++ --> manager[0].in++;
 }
