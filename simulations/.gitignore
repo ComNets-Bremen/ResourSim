@@ -1,2 +1,4 @@
 # Ignore user data for the public repository
 *.xml
+*.json
+img
