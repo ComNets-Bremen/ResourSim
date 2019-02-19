@@ -24,6 +24,7 @@
 #include "capacity_messages/CapacityMessages.h"
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
@@ -32,7 +33,7 @@ namespace eventsimulator {
 /**
  * TODO - Generated class
  */
-class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
+class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>, public cListener
 {
   public:
     SimpleWiFi();
@@ -41,6 +42,8 @@ class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>
     void refreshDisplay() const;
 
     DeviceStates getDeviceState() const;
+    virtual void receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details);
+
 
     void finish();
 

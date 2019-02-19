@@ -21,7 +21,7 @@ simple SimpleBluetooth
 {
     parameters:
         @display("i=status/bluetooth_neutral");
-        volatile double bluetoothCurrentDrawn = default(0.03); // TODO: Check and put a meaningful value
+        volatile double bluetoothCurrentDrawn = default(0.04); // TODO: Check and put a meaningful value
     gates:
         input in[];
         output out[];

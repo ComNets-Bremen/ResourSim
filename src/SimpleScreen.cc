@@ -23,10 +23,14 @@ SimpleScreen::SimpleScreen() {
     screenStatusValues.setName("Screen Status");
     screenStatusPropability.setName("Screen Status in Window");
     collectMeasurementsEvent = nullptr;
-    backgroundServiceEndMessage = nullptr;
 }
 
 SimpleScreen::~SimpleScreen() {
+    if (getSimulation()->getSystemModule()->isSubscribed(
+                CALCULATE_BATTERY_DIFFS, this))
+            getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
+                    this);
+
     cancelAndDelete(collectMeasurementsEvent);
 }
 
@@ -34,9 +38,24 @@ void SimpleScreen::initialize() {
     EV_INFO << "Init screen" << endl;
     EV_INFO << "Window Size for statistics: " << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");
-    scheduleAt(0, collectMeasurementsEvent);
-    // TODO: Init?
+
+    getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
+                this);
     initialized = true;
+}
+
+void SimpleScreen::receiveSignal(cComponent *component, simsignal_t signal,
+        bool b, cObject *details) {
+    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
+        if (screenOn) {
+            EV_INFO << "Recalc used energy for screen due to regular event." << std::endl;
+            simtime_t duration = simTime() - screenSwitchedOn;
+            screenSwitchedOn = simTime();
+            sendBatteryConsumptionEvent(duration);
+        }
+    }
+
 }
 
 /**
@@ -118,59 +137,29 @@ void SimpleScreen::handleMessage(cMessage *msg) {
             return;
         }
 
-        if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
-            EV_INFO << "Collision Background" << endl;
-            collisionUser++;
-            delete msg;
-            return;
-        }
-
         ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(
                 msg);
 
         addMessageForUserStats(screenMsg);
 
+        bool previousState = screenOn;
+
         screenStatusValues.record(screenMsg->getScreenOn());
         screenOn = screenMsg->getScreenOn();
 
-        if (screenOn){
-            deviceState = DEVICE_STATE_OCCUPIED_USER;
+        if (screenOn && !previousState){
+            // off -> on
             screenSwitchedOn = simTime();
-        } else {
-            deviceState = DEVICE_STATE_FREE;
+        } else if (!screenOn && previousState){
+            // on -> off
             simtime_t duration = simTime() - screenSwitchedOn;
             EV_INFO << "Screen duration " << duration << std::endl;
             sendBatteryConsumptionEvent(duration);
+        } else {
+            // Only count device changes
         }
 
         delete screenMsg;
-    } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
-        EV_INFO << "Background Message" << endl;
-        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
-                BackgroundEventMessage *>(msg);
-        if (backgroundEventMessage->getBackgroundType()
-                == BACKGROUND_EVENT_TYPE_CPU) {
-
-            if ((deviceState == DEVICE_STATE_FREE)
-                    or (deviceState == DEVICE_STATE_UNKNOWN)) {
-                deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
-                backgroundServiceEndMessage = new cMessage(
-                        "End Background Service");
-                scheduleAt(simTime() + backgroundEventMessage->getDuration(),
-                        backgroundServiceEndMessage);
-            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
-                EV_INFO << "self collision" << endl;
-                collisionSelf++;
-            } else {
-                collisionBackground++;
-            }
-
-        }
-        delete msg;
-    } else if (msg == backgroundServiceEndMessage) {
-        EV_INFO << "End background service" << endl;
-        deviceState = DEVICE_STATE_FREE;
-        delete msg;
     } else if (msg == collectMeasurementsEvent) {
         cleanupMessagesForStats();
         // printEventsForStats();
@@ -203,11 +192,6 @@ void SimpleScreen::handleMessage(cMessage *msg) {
     }
 }
 
-void SimpleScreen::finish() {
-    recordScalar("#collisionUser", collisionUser);
-    recordScalar("#collisionBackground", collisionBackground);
-    recordScalar("#collisionSelf", collisionSelf);
-}
 
 void SimpleScreen::refreshDisplay() const {
     char buf[40];

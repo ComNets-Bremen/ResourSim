@@ -20,16 +20,19 @@
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
 #include "capacity_messages/CapacityMessages.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
 namespace eventsimulator {
 
-class SimpleBluetooth : public cSimpleModule
+class SimpleBluetooth : public cSimpleModule, public cListener
 {
   public:
     SimpleBluetooth();
     ~SimpleBluetooth();
+
+    virtual void receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details);
 
     void refreshDisplay() const;
 

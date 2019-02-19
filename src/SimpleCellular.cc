@@ -24,13 +24,34 @@ SimpleCellular::SimpleCellular() {
 }
 
 SimpleCellular::~SimpleCellular() {
+    if (getSimulation()->getSystemModule()->isSubscribed(
+            CALCULATE_BATTERY_DIFFS, this))
+        getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
+                this);
 
 }
 
 void SimpleCellular::initialize() {
     EV << "Init cellular status" << endl;
+
+    getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
+            this);
     // TODO: Init something?
     initialized = true;
+}
+
+void SimpleCellular::receiveSignal(cComponent *component, simsignal_t signal,
+        bool b, cObject *details) {
+    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
+        if (cellularIsUsed) {
+            EV_INFO << "Recalc used energy for cellular network due to regular event." << std::endl;
+            simtime_t duration = simTime() - startOccupiedTime;
+            startOccupiedTime = simTime();
+            sendBatteryConsumptionEvent(duration);
+        }
+    }
+
 }
 
 void SimpleCellular::handleMessage(cMessage *msg) {
@@ -65,9 +86,9 @@ void SimpleCellular::handleMessage(cMessage *msg) {
         // TODO: Check if transition is valid?
 
         // Energy consumption checks
-        if (cellularIsUsed != previousCellularIsUsed){
+        if (cellularIsUsed != previousCellularIsUsed) {
             // State change
-            if (cellularIsUsed){
+            if (cellularIsUsed) {
                 // Switched on
                 startOccupiedTime = simTime();
             } else {
@@ -101,10 +122,13 @@ void SimpleCellular::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_CELLULAR);
     double chargeChange = -1 * par("cellularCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+                   << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
 
-    if (gateSize("out") < 1) throw cRuntimeError("Invalid number of output gates: %d; must be >=1", gateSize("out"));
+    if (gateSize("out") < 1)
+        throw cRuntimeError("Invalid number of output gates: %d; must be >=1",
+                gateSize("out"));
 
     for (int i = 0; i < gateSize("out"); i++)
         send(cEvent->dup(), "out", i);

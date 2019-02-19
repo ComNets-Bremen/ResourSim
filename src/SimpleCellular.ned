@@ -21,7 +21,7 @@ simple SimpleCellular
 {
     parameters:
         @display("i=status/cell_idle");
-        volatile double cellularCurrentDrawn = default(0.2); // TODO: Check and put a meaningful value
+        volatile double cellularCurrentDrawn = default(0.09); // TODO: Check and put a meaningful value
     gates:
         input in[];
         output out[];

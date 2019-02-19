@@ -20,17 +20,20 @@
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
 #include "capacity_messages/CapacityMessages.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
 namespace eventsimulator {
 
 
-class SimpleCellular : public cSimpleModule
+class SimpleCellular : public cSimpleModule, public cListener
 {
   public:
     SimpleCellular();
     ~SimpleCellular();
+
+    virtual void receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details);
 
     void refreshDisplay() const;
 

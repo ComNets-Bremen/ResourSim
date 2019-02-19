@@ -24,19 +24,21 @@
 #include "capacity_messages/CapacityMessages.h"
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
+#include "ResourceSignals.h"
 
 using namespace omnetpp;
 
 namespace eventsimulator {
 
-class SimpleScreen : public BaseResourceMode<ScreenEventMessage>
+class SimpleScreen : public BaseResourceMode<ScreenEventMessage>, public cListener
 {
   public:
     SimpleScreen();
     virtual ~SimpleScreen();
 
+    virtual void receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details);
+
     void refreshDisplay() const;
-    void finish();
 
   protected:
     virtual void initialize();
@@ -50,18 +52,7 @@ class SimpleScreen : public BaseResourceMode<ScreenEventMessage>
 
     simtime_t screenSwitchedOn = 0;
 
-    // We assume the screen as an indicator if the device is actively being used.
-    // The user should not face problems due to an (uninterruptible) task running in the background
-    // So the screen status corresponds more to the CPU usage than the actual screen usage.
-    DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
-    cMessage *backgroundServiceEndMessage;
-
     cMessage *collectMeasurementsEvent;
-
-    // statistics
-    long collisionBackground = 0;
-    long collisionUser = 0;
-    long collisionSelf = 0;
 
     cOutVector screenStatusValues;
     cOutVector screenStatusPropability;

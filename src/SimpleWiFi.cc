@@ -30,6 +30,11 @@ SimpleWiFi::SimpleWiFi() {
 
 SimpleWiFi::~SimpleWiFi() {
     cancelAndDelete(collectMeasurementsEvent);
+    if (getSimulation()->getSystemModule()->isSubscribed(
+            CALCULATE_BATTERY_DIFFS, this))
+        getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
+                this);
+
 }
 
 void SimpleWiFi::initialize() {
@@ -38,9 +43,26 @@ void SimpleWiFi::initialize() {
                    << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
+    getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
+            this);
     // TODO: Init something?
     initialized = true;
 }
+
+void SimpleWiFi::receiveSignal(cComponent *component, simsignal_t signal,
+        bool b, cObject *details) {
+    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
+        if (deviceState == DEVICE_STATE_OCCUPIED_USER || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
+            EV_INFO << "Recalc used energy for WiFi due to regular event." << std::endl;
+            simtime_t duration = simTime() - startOccupiedTime;
+            startOccupiedTime = simTime();
+            sendBatteryConsumptionEvent(duration);
+        }
+    }
+
+}
+
 
 DeviceStates SimpleWiFi::getDeviceState() const{
     return deviceState;

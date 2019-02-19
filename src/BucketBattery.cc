@@ -22,8 +22,8 @@ Define_Module(BucketBattery);
 void BucketBattery::initialize() {
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
-    batteryPercentageSignalId = registerSignal(BATTERY_PERCENTAGE_SIGNAL);
 
+    batteryPercentageSignalId = registerSignal(BATTERY_PERCENTAGE_SIGNAL);
     batteryPercentageInconvinientSignalId = registerSignal(BATTERY_INCONVENIENT_SIGNAL);
 
     batteryCharge = 0.5 * par("batteryCapacityCoulomb").doubleValue(); // We start with a half filled battery

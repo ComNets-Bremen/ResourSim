@@ -24,7 +24,7 @@ simple SimpleWiFi
         volatile int statsWindowSize @unit("s")	= default(3600s);
         volatile int periodicStatsCollectionInterval @unit("s") = default(240s);
         
-        volatile double txCurrentDrawn = default(0.08); // 80 mA, TODO: Check
+        volatile double txCurrentDrawn = default(0.1); // 100 mA, TODO: Check
     gates:
         input in[];
         output out[];
