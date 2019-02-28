@@ -44,6 +44,7 @@ OBJS = \
     $O/SimplePercentageBattery.o \
     $O/SimpleScreen.o \
     $O/SimpleWiFi.o \
+    $O/StatisticEntry.o \
     $O/background_messages/BackgroundEventMessage_m.o \
     $O/capacity_messages/CapacityEvent_m.o \
     $O/event_messages/AirplaneModeEventMessage_m.o \
