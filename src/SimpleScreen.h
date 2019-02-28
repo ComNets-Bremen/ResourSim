@@ -30,7 +30,7 @@ using namespace omnetpp;
 
 namespace eventsimulator {
 
-class SimpleScreen : public BaseResourceMode<ScreenEventMessage>, public cListener
+class SimpleScreen : public BaseResourceMode, public cListener
 {
   public:
     SimpleScreen();

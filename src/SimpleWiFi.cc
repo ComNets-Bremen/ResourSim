@@ -74,7 +74,7 @@ DeviceStates SimpleWiFi::getDeviceState() const{
  * It is used as a parameter for the calcStats function
  */
 static std::map<std::string, double> statisticFunction(
-        std::deque<WiFiEventMessage *> msg, int windowSize) {
+        std::deque<StatisticEntry *> msg, int windowSize) {
     std::map<std::string, double> resultMap;
 
     std::string lastStatus;
@@ -83,15 +83,16 @@ static std::map<std::string, double> statisticFunction(
 
     double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
 
-    for (WiFiEventMessage *e : msg) {
-        std::string status = getWiFiStatusString(e->getWifi_status());
+    EV_INFO << "START LOOP" << std::endl;
+    for (auto *e : msg) {
+        std::string status = e->getActive()?"Occupied":"Free";
 
         if (!lastSet) {
             //EV_INFO << "LAST SET" << std::endl;
             // first run: Store start values
             lastStatus = status;
             if (simTime() < windowSize)
-                lastTimestamp = simTime();
+                lastTimestamp = e->getStartTime();
             else
                 lastTimestamp = simTime() - period;
             lastSet = true;
@@ -104,17 +105,16 @@ static std::map<std::string, double> statisticFunction(
                 resultMap[status] = 0.0;
             }
 
-            simtime_t difference = e->getArrivalTime() - lastTimestamp;
-
-            //EV_INFO << lastStatus << " " << difference << " " << lastTimestamp << " " << simTime() << std::endl;
+            simtime_t difference = e->getStartTime() - lastTimestamp;
 
             resultMap[lastStatus] += difference.dbl() / period;
-            lastTimestamp = e->getArrivalTime();
+            lastTimestamp = e->getStartTime();
             lastStatus = status;
         } else {
             // This is the first run and we do not have sufficient data
         }
     } // for
+    EV_INFO << "END LOOP" << std::endl;
 
     // Add remaining values if the current time and the last timestamp are different
     if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
@@ -155,9 +155,6 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
         WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
 
-        addMessageForUserStats(wifiMsg);
-        cleanupMessagesForStats();
-
         wifiStatus = wifiMsg->getWifi_status();
         wifiStatusValues.record(wifiStatus);
 
@@ -169,6 +166,13 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             simtime_t duration = simTime() - startOccupiedTime;
             sendBatteryConsumptionEvent(duration);
         }
+
+        addMessageForUserStats(new StatisticEntry(
+                deviceState==DEVICE_STATE_OCCUPIED_USER,
+                wifiMsg->getArrivalTime(),
+                StatisticEntry::USAGE_USER
+                ));
+        cleanupMessagesForStats();
 
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
@@ -186,6 +190,11 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                         "End Background Service");
                 scheduleAt(simTime() + backgroundEventMessage->getDuration(),
                         backgroundServiceEndMessage);
+                addMessageForUserStats(new StatisticEntry(
+                        true,
+                        msg->getArrivalTime(),
+                        StatisticEntry::USAGE_BACKGROUND
+                        ));
             } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
                 EV_INFO << "self collision" << endl;
                 collisionSelf++;
@@ -200,6 +209,11 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         // Send message to battery
         sendBatteryConsumptionEvent(duration);
         deviceState = DEVICE_STATE_FREE;
+        addMessageForUserStats(new StatisticEntry(
+                                false,
+                                msg->getArrivalTime(),
+                                StatisticEntry::USAGE_BACKGROUND
+                                ));
         delete msg;
     } else if (msg == collectMeasurementsEvent) {
         // Handle regular statistic events
@@ -250,7 +264,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 msg);
         return;
     } else {
-        EV_ERROR << "Unhandled message" << endl;
+        // Message not for this module
         delete msg;
     }
 }

@@ -61,10 +61,10 @@ void SimpleScreen::receiveSignal(cComponent *component, simsignal_t signal,
 /**
  * This function is used to create the required statistics out of the given dataset.
  *
- * It is used as a parameter for the calcStats function
+ * It is used as a parameter for the calcStats function (callback)
  */
 static std::map<std::string, double> statisticFunction(
-        std::deque<ScreenEventMessage *> msg, int windowSize) {
+        std::deque<StatisticEntry *> msg, int windowSize) {
     std::map<std::string, double> resultMap;
 
     std::string lastStatus;
@@ -73,9 +73,9 @@ static std::map<std::string, double> statisticFunction(
 
     double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
 
-    for (ScreenEventMessage *e : msg) {
+    for (auto *e : msg) {
         std::string status;
-        if (e->getScreenOn())
+        if (e->getActive())
             status = "on";
         else
             status = "off";
@@ -96,12 +96,12 @@ static std::map<std::string, double> statisticFunction(
                 resultMap[status] = 0.0;
             }
 
-            simtime_t difference = e->getArrivalTime() - lastTimestamp;
+            simtime_t difference = e->getStartTime() - lastTimestamp;
 
             //EV_INFO << lastStatus << " " << difference << " " << lastTimestamp << " " << simTime() << std::endl;
 
             resultMap[lastStatus] += difference.dbl() / period;
-            lastTimestamp = e->getArrivalTime();
+            lastTimestamp = e->getStartTime();
             lastStatus = status;
         } else {
             // This is the first run and we do not have sufficient data
@@ -140,7 +140,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(
                 msg);
 
-        addMessageForUserStats(screenMsg);
+        addMessageForUserStats(new StatisticEntry(screenMsg->getScreenOn(), screenMsg->getArrivalTime(), StatisticEntry::USAGE_USER));
 
         bool previousState = screenOn;
 
@@ -187,7 +187,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
                 simTime() + par("periodicStatsCollectionInterval").intValue(),
                 msg);
     } else {
-        EV_ERROR << "Unknown Message" << endl;
+        // Message not for this module
         delete msg;
     }
 }

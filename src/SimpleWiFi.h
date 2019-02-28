@@ -33,7 +33,7 @@ namespace eventsimulator {
 /**
  * TODO - Generated class
  */
-class SimpleWiFi : public BaseResourceMode<WiFiEventMessage>, public cListener
+class SimpleWiFi : public BaseResourceMode, public cListener
 {
   public:
     SimpleWiFi();

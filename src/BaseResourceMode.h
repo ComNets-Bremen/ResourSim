@@ -30,16 +30,15 @@
 #include "background_messages/BackgroundMessages.h"
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
+#include "StatisticEntry.h"
 
 using namespace omnetpp;
 
 namespace eventsimulator {
 
-template<class T>
 class BaseResourceMode: public cSimpleModule {
 public:
-    void addMessageForUserStats(T *msg);
-    void addMessageForBackgroundStats(cMessage *msg);
+    void addMessageForUserStats(StatisticEntry *msg);
     ~BaseResourceMode();
     BaseResourceMode();
 
@@ -50,59 +49,36 @@ public:
     int getNumOfMessagesForBackgroundStats();
 
     std::map<std::string, double> calcUserStats(int windowSize,
-            std::map<std::string, double> (*f)(std::deque<T *> packets,
-                    int windowSize));
-    std::map<std::string, double> calcBackgroundStats(int windowSize,
-            std::map<std::string, double> (*f)(std::deque<cMessage *> packets,
+            std::map<std::string, double> (*f)(std::deque<StatisticEntry *> packets,
                     int windowSize));
 
 private:
-    std::deque<T *> myUserPackets;
-    std::deque<cMessage *> myBackgroundPackets;
+    std::deque<StatisticEntry *> myUserPackets;
 };
 
 /**
  * Constructor
  */
-template<class T>
-inline BaseResourceMode<T>::BaseResourceMode() {
+inline BaseResourceMode::BaseResourceMode() {
     // nop
 }
 
 /**
  * Destructor, tidy up everything
  */
-template<class T>
-inline BaseResourceMode<T>::~BaseResourceMode() {
+inline BaseResourceMode::~BaseResourceMode() {
     while (!myUserPackets.empty()) {
         delete (myUserPackets.front());
         myUserPackets.pop_front();
     }
-
-    while (!myBackgroundPackets.empty()) {
-        delete (myBackgroundPackets.front());
-        myBackgroundPackets.pop_front();
-    }
 }
 
 /**
- * Calculate the statistics (User)
+ * Calculate the statistics
  */
-template<class T>
-inline std::map<std::string, double> BaseResourceMode<T>::calcUserStats(
+inline std::map<std::string, double> BaseResourceMode::calcUserStats(
         int windowSize,
-        std::map<std::string, double> (*f)(std::deque<T *> packets,
-                int windowSize)) {
-    return (*f)(myUserPackets, windowSize);
-}
-
-/**
- * Calculate the statistics (Background)
- */
-template<class T>
-inline std::map<std::string, double> BaseResourceMode<T>::calcBackgroundStats(
-        int windowSize,
-        std::map<std::string, double> (*f)(std::deque<cMessage *> packets,
+        std::map<std::string, double> (*f)(std::deque<StatisticEntry *> packets,
                 int windowSize)) {
     return (*f)(myUserPackets, windowSize);
 }
@@ -110,81 +86,45 @@ inline std::map<std::string, double> BaseResourceMode<T>::calcBackgroundStats(
 /**
  * Add a message to the stats. All messages from a certain module should be added (User)
  */
-template<class T>
-inline void BaseResourceMode<T>::addMessageForUserStats(T *msg) {
+inline void BaseResourceMode::addMessageForUserStats(StatisticEntry *msg) {
     //myPackets.push_back(msg->dup());
-    myUserPackets.push_back(msg->dup());
+    myUserPackets.push_back(msg);
 }
 
-/**
- * Add a message to the stats. All messages from a certain module should be added (Background)
- */
-template<class T>
-inline void BaseResourceMode<T>::addMessageForBackgroundStats(cMessage *msg) {
-    //myPackets.push_back(msg->dup());
-    myUserPackets.push_back(msg->dup());
-}
 
 /**
  * Print some statistics to EV_INFO
  */
-template<class T>
-inline void BaseResourceMode<T>::printEventsForStats() {
+inline void BaseResourceMode::printEventsForStats() {
     EV_INFO << "Statistics: " << std::endl;
     EV_INFO << "Current time: " << simTime() << std::endl;
     EV_INFO << "User statistics: " << simTime() << std::endl;
-    for (T *e : myUserPackets) {
-        EV_INFO << "Packet time: " << e->getArrivalTime() << std::endl;
-    }
-
-    EV_INFO << "Background statistics: " << simTime() << std::endl;
-    for (cMessage *e : myUserPackets) {
-        EV_INFO << "Packet time: " << e->getArrivalTime() << std::endl;
+    for (auto *e : myUserPackets) {
+        EV_INFO << "Packet time: " << e->getStartTime() << std::endl;
     }
 }
 
 /**
  * Tidy up the list of messages
  */
-template<class T>
-inline void BaseResourceMode<T>::cleanupMessagesForStats() {
+inline void BaseResourceMode::cleanupMessagesForStats() {
 
     int statsWindowSize = par("statsWindowSize").intValue();
 
     while (myUserPackets.size() > 1
-            && (simTime() - myUserPackets[1]->getArrivalTime() > statsWindowSize)) {
+            && (simTime() - myUserPackets[1]->getStartTime() > statsWindowSize)) {
         EV_INFO << "Drop user message: "
-                       << myUserPackets.front()->getArrivalTime() << std::endl;
+                       << myUserPackets.front()->getStartTime() << std::endl;
         delete (myUserPackets.front());
         myUserPackets.pop_front();
     }
-
-    while (myBackgroundPackets.size() > 1
-            && (simTime() - myBackgroundPackets[1]->getArrivalTime()
-                    > statsWindowSize)) {
-        EV_INFO << "Drop background message: "
-                       << myBackgroundPackets.front()->getArrivalTime()
-                       << std::endl;
-        delete (myBackgroundPackets.front());
-        myBackgroundPackets.pop_front();
-    }
-
 }
 
 /**
  * Get number of messages used for the current stats
  */
-template<class T>
-inline int BaseResourceMode<T>::getNumOfMessagesForUserStats() {
+inline int BaseResourceMode::getNumOfMessagesForUserStats() {
     return myUserPackets.size();
-}
-
-/**
- * Get number of messages used for the current stats
- */
-template<class T>
-inline int BaseResourceMode<T>::getNumOfMessagesForBackgroundStats() {
-    return myBackgroundPackets.size();
 }
 
 } /* namespace eventsimulator */
