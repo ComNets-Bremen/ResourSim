@@ -110,7 +110,7 @@ static std::map<std::string, double> statisticFunction(
 
     // Add remaining values if the current time and the last timestamp are different
     if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
-        resultMap[lastStatus] = (simTime() - lastTimestamp).dbl() / period;
+        resultMap[lastStatus] += (simTime() - lastTimestamp).dbl() / period;
     }
 
     double checkNumber = 0; // Check if the sum of all values is 1 and print the results

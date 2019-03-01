@@ -83,12 +83,24 @@ static std::map<std::string, double> statisticFunction(
 
     double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
 
-    EV_INFO << "START LOOP" << std::endl;
     for (auto *e : msg) {
-        std::string status = e->getActive()?"Occupied":"Free";
+        std::string status;
+
+        if (e->getActive()){
+            if(e->getUsageType() == StatisticEntry::USAGE_BACKGROUND){
+                status="OCCUPIED_BACKGROUND";
+            } else if (e->getUsageType() == StatisticEntry::USAGE_USER){
+                status="OCCUPIED USER";
+            } else {
+                throw cRuntimeError("Invalid type: %s", e->getUsageTypeString().c_str());
+            }
+
+        } else {
+            status="FREE";
+        }
+
 
         if (!lastSet) {
-            //EV_INFO << "LAST SET" << std::endl;
             // first run: Store start values
             lastStatus = status;
             if (simTime() < windowSize)
@@ -97,7 +109,6 @@ static std::map<std::string, double> statisticFunction(
                 lastTimestamp = simTime() - period;
             lastSet = true;
         } else if (msg.size() > 1) {
-            //EV_INFO << "Continue..." << std::endl;
             // Add values only if we have more than one
 
             if (resultMap.count(status) == 0) {
@@ -106,7 +117,6 @@ static std::map<std::string, double> statisticFunction(
             }
 
             simtime_t difference = e->getStartTime() - lastTimestamp;
-
             resultMap[lastStatus] += difference.dbl() / period;
             lastTimestamp = e->getStartTime();
             lastStatus = status;
@@ -114,21 +124,18 @@ static std::map<std::string, double> statisticFunction(
             // This is the first run and we do not have sufficient data
         }
     } // for
-    EV_INFO << "END LOOP" << std::endl;
 
     // Add remaining values if the current time and the last timestamp are different
     if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
-        //EV_INFO << "FILLING..." << std::endl;
-        resultMap[lastStatus] = (simTime() - lastTimestamp).dbl() / period;
+        resultMap[lastStatus] += (simTime() - lastTimestamp).dbl() / period;
     }
 
     double checkNumber = 0; // Check if the sum of all values is 1 and print the results
-    EV_INFO << "RESULTS: " << std::endl;
     for (auto r : resultMap) {
-        EV_INFO << r.first << ": " << r.second << std::endl;
         checkNumber += r.second;
     }
-    EV_INFO << "END RESULTS" << std::endl;
+
+
 
     if ((checkNumber < 0.99 || checkNumber > 1.01) && msg.size() > 0) {
         EV_ERROR << "DOUBLE NOT EQUAL 1.0. Value: " << checkNumber << std::endl;
@@ -176,7 +183,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
-        EV_INFO << "Background Message" << endl;
+        //EV_INFO << "Background Message" << endl;
         BackgroundEventMessage *backgroundEventMessage = check_and_cast<
                 BackgroundEventMessage *>(msg);
         if (backgroundEventMessage->getBackgroundType()
