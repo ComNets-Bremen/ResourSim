@@ -68,82 +68,6 @@ DeviceStates SimpleWiFi::getDeviceState() const{
     return deviceState;
 }
 
-/**
- * This function is used to create the required statistics out of the given dataset.
- *
- * It is used as a parameter for the calcStats function
- */
-static std::map<std::string, double> statisticFunction(
-        std::deque<StatisticEntry *> msg, int windowSize) {
-    std::map<std::string, double> resultMap;
-
-    std::string lastStatus;
-    simtime_t lastTimestamp;
-    bool lastSet = false;
-
-    double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
-
-    for (auto *e : msg) {
-        std::string status;
-
-        if (e->getActive()){
-            if(e->getUsageType() == StatisticEntry::USAGE_BACKGROUND){
-                status="OCCUPIED_BACKGROUND";
-            } else if (e->getUsageType() == StatisticEntry::USAGE_USER){
-                status="OCCUPIED USER";
-            } else {
-                throw cRuntimeError("Invalid type: %s", e->getUsageTypeString().c_str());
-            }
-
-        } else {
-            status="FREE";
-        }
-
-
-        if (!lastSet) {
-            // first run: Store start values
-            lastStatus = status;
-            if (simTime() < windowSize)
-                lastTimestamp = e->getStartTime();
-            else
-                lastTimestamp = simTime() - period;
-            lastSet = true;
-        } else if (msg.size() > 1) {
-            // Add values only if we have more than one
-
-            if (resultMap.count(status) == 0) {
-                // Add time for this status
-                resultMap[status] = 0.0;
-            }
-
-            simtime_t difference = e->getStartTime() - lastTimestamp;
-            resultMap[lastStatus] += difference.dbl() / period;
-            lastTimestamp = e->getStartTime();
-            lastStatus = status;
-        } else {
-            // This is the first run and we do not have sufficient data
-        }
-    } // for
-
-    // Add remaining values if the current time and the last timestamp are different
-    if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
-        resultMap[lastStatus] += (simTime() - lastTimestamp).dbl() / period;
-    }
-
-    double checkNumber = 0; // Check if the sum of all values is 1 and print the results
-    for (auto r : resultMap) {
-        checkNumber += r.second;
-    }
-
-
-
-    if ((checkNumber < 0.99 || checkNumber > 1.01) && msg.size() > 0) {
-        EV_ERROR << "DOUBLE NOT EQUAL 1.0. Value: " << checkNumber << std::endl;
-    }
-
-    return resultMap;
-}
-
 void SimpleWiFi::handleMessage(cMessage *msg) {
     if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
         if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType()
@@ -225,10 +149,9 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
     } else if (msg == collectMeasurementsEvent) {
         // Handle regular statistic events
         cleanupMessagesForStats();
-        // printEventsForStats();
+
         std::map<std::string, double> result = calcUserStats(
-                par("statsWindowSize").intValue(), statisticFunction);
-        // record on / off
+                        par("statsWindowSize").intValue());
 
         double on = 0.0;
         double off = 0.0;

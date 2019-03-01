@@ -49,11 +49,16 @@ public:
     int getNumOfMessagesForBackgroundStats();
 
     std::map<std::string, double> calcUserStats(int windowSize,
-            std::map<std::string, double> (*f)(std::deque<StatisticEntry *> packets,
-                    int windowSize));
+            std::map<std::string, double> (*f)(
+                    std::deque<StatisticEntry *> packets, int windowSize));
+
+    std::map<std::string, double> calcUserStats(int windowSize);
 
 private:
     std::deque<StatisticEntry *> myUserPackets;
+
+    static std::map<std::string, double> defaultStatisticFunction(
+            std::deque<StatisticEntry *> msg, int windowSize);
 };
 
 /**
@@ -74,7 +79,70 @@ inline BaseResourceMode::~BaseResourceMode() {
 }
 
 /**
- * Calculate the statistics
+ * Default statistic function
+ */
+inline std::map<std::string, double> BaseResourceMode::defaultStatisticFunction(
+        std::deque<StatisticEntry *> msg, int windowSize) {
+    std::map<std::string, double> resultMap;
+
+    std::string lastStatus;
+    simtime_t lastTimestamp;
+    bool lastSet = false;
+
+    double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
+
+    for (auto *e : msg) {
+        std::string status;
+
+        if (e->getActive()) {
+            if (e->getUsageType() == StatisticEntry::USAGE_BACKGROUND) {
+                status = "USED: BACKGROUND";
+            } else if (e->getUsageType() == StatisticEntry::USAGE_USER) {
+                status = "USED: USER";
+            } else {
+                throw cRuntimeError("Invalid type: %s",
+                        e->getUsageTypeString().c_str());
+            }
+
+        } else {
+            status = "FREE";
+        }
+
+        if (!lastSet) {
+            // first run: Store start values
+            lastStatus = status;
+            if (simTime() < windowSize)
+                lastTimestamp = e->getStartTime();
+            else
+                lastTimestamp = simTime() - period;
+            lastSet = true;
+        } else if (msg.size() > 1) {
+            // Add values only if we have more than one
+
+            if (resultMap.count(status) == 0) {
+                // Add time for this status
+                resultMap[status] = 0.0;
+            }
+
+            simtime_t difference = e->getStartTime() - lastTimestamp;
+            resultMap[lastStatus] += difference.dbl() / period;
+            lastTimestamp = e->getStartTime();
+            lastStatus = status;
+        } else {
+            // This is the first run and we do not have sufficient data
+        }
+    } // for
+
+    // Add remaining values if the current time and the last timestamp are different
+    if (lastSet && lastTimestamp != simTime() && msg.size() > 0) {
+        resultMap[lastStatus] += (simTime() - lastTimestamp).dbl() / period;
+    }
+
+    return resultMap;
+}
+
+/**
+ * Calculate the statistics using a callback function
  */
 inline std::map<std::string, double> BaseResourceMode::calcUserStats(
         int windowSize,
@@ -84,13 +152,20 @@ inline std::map<std::string, double> BaseResourceMode::calcUserStats(
 }
 
 /**
+ * Calculates the statistics using the default function
+ */
+inline std::map<std::string, double> BaseResourceMode::calcUserStats(int windowSize) {
+    return calcUserStats(windowSize, defaultStatisticFunction);
+}
+
+
+/**
  * Add a message to the stats. All messages from a certain module should be added (User)
  */
 inline void BaseResourceMode::addMessageForUserStats(StatisticEntry *msg) {
     //myPackets.push_back(msg->dup());
     myUserPackets.push_back(msg);
 }
-
 
 /**
  * Print some statistics to EV_INFO
