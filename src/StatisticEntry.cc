@@ -34,27 +34,24 @@ simtime_t StatisticEntry::getStartTime() const{
     return m_startTime;
 }
 
-StatisticEntry::UsageType StatisticEntry::getUsageType() const {
+StatisticType::UsageType StatisticEntry::getUsageType() const {
     return m_usageType;
 }
 
-void StatisticEntry::setUsageType(UsageType type){
+void StatisticEntry::setUsageType(StatisticType::UsageType type){
     m_usageType = type;
 }
 
 std::string StatisticEntry::getUsageTypeString() const{
     switch (m_usageType){
-    case StatisticEntry::USAGE_USER:
+    case StatisticType::USAGE_USER:
         return "User";
-    case StatisticEntry::USAGE_BACKGROUND:
+    case StatisticType::USAGE_BACKGROUND:
         return "Background";
     default:
-        return "Undefined";
+        throw cRuntimeError("Unhandled statistic type");
     }
 }
 
-std::ostream& operator<<(std::ostream& os, const StatisticEntry& obj){
-    return os << "Start: " << obj.getStartTime() << " Type: " << obj.getUsageTypeString() << " isActive: " << obj.getActive();
-}
 
 } /* namespace eventsimulator */
