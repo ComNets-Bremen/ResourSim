@@ -69,14 +69,8 @@ DeviceStates SimpleWiFi::getDeviceState() const{
 }
 
 void SimpleWiFi::handleMessage(cMessage *msg) {
-    if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
-        if (check_and_cast<BaseEventMessage *>(msg)->getPayloadType()
-                != EVENT_TYPE_WIFI) {
-            // Not our message
-            delete msg;
-            return;
-        }
 
+    if (dynamic_cast<WiFiEventMessage *>(msg) != nullptr){
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
             collisionUser++;
@@ -101,7 +95,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         addMessageForUserStats(new StatisticEntry(
                 deviceState==DEVICE_STATE_OCCUPIED_USER,
                 wifiMsg->getArrivalTime(),
-                StatisticEntry::USAGE_USER
+                StatisticType::USAGE_USER
                 ));
         cleanupMessagesForStats();
 
@@ -124,7 +118,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 addMessageForUserStats(new StatisticEntry(
                         true,
                         msg->getArrivalTime(),
-                        StatisticEntry::USAGE_BACKGROUND
+                        StatisticType::USAGE_BACKGROUND
                         ));
             } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
                 EV_INFO << "self collision" << endl;
@@ -143,21 +137,21 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         addMessageForUserStats(new StatisticEntry(
                                 false,
                                 msg->getArrivalTime(),
-                                StatisticEntry::USAGE_BACKGROUND
+                                StatisticType::USAGE_BACKGROUND
                                 ));
         delete msg;
     } else if (msg == collectMeasurementsEvent) {
         // Handle regular statistic events
         cleanupMessagesForStats();
 
-        std::map<std::string, double> result = calcUserStats(
+        std::map<StatisticResult, double> result = calcUserStats(
                         par("statsWindowSize").intValue());
 
         double on = 0.0;
         double off = 0.0;
         for (auto s : result) {
             //EV_INFO << "CHECK ME: " << s.first << std::endl;
-            if (getWiFiIsOccupied(getWiFiStatusCode(s.first)))
+            if (s.first.isActive)
                 on += s.second;
             else
                 off += s.second;

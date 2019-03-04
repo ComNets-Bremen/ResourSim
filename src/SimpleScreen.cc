@@ -70,7 +70,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(
                 msg);
 
-        addMessageForUserStats(new StatisticEntry(screenMsg->getScreenOn(), screenMsg->getArrivalTime(), StatisticEntry::USAGE_USER));
+        addMessageForUserStats(new StatisticEntry(screenMsg->getScreenOn(), screenMsg->getArrivalTime(), StatisticType::USAGE_USER));
 
         bool previousState = screenOn;
 
@@ -93,16 +93,16 @@ void SimpleScreen::handleMessage(cMessage *msg) {
     } else if (msg == collectMeasurementsEvent) {
         cleanupMessagesForStats();
         // printEventsForStats();
-        std::map<std::string, double> result = calcUserStats(
+        std::map<StatisticResult, double> result = calcUserStats(
                 par("statsWindowSize").intValue());
 
         double on = 0.0;
         double off = 0.0;
 
         for (auto v : result) {
-            if (v.first == "on") {
+            if (v.first.isActive) {
                 on += v.second;
-            } else if (v.first == "off") {
+            } else if (!v.first.isActive) {
                 off += v.second;
             } else {
                 EV_ERROR << "Unknown type: " << v.first << " " << std::endl;

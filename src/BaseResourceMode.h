@@ -48,16 +48,16 @@ public:
     int getNumOfMessagesBackgroundStats();
     int getNumOfMessagesForBackgroundStats();
 
-    std::map<std::string, double> calcUserStats(int windowSize,
-            std::map<std::string, double> (*f)(
+    std::map<StatisticResult, double> calcUserStats(int windowSize,
+            std::map<StatisticResult, double> (*f)(
                     std::deque<StatisticEntry *> packets, int windowSize));
 
-    std::map<std::string, double> calcUserStats(int windowSize);
+    std::map<StatisticResult, double> calcUserStats(int windowSize);
 
 private:
     std::deque<StatisticEntry *> myUserPackets;
 
-    static std::map<std::string, double> defaultStatisticFunction(
+    static std::map<StatisticResult, double> defaultStatisticFunction(
             std::deque<StatisticEntry *> msg, int windowSize);
 };
 
@@ -81,32 +81,21 @@ inline BaseResourceMode::~BaseResourceMode() {
 /**
  * Default statistic function
  */
-inline std::map<std::string, double> BaseResourceMode::defaultStatisticFunction(
+inline std::map<StatisticResult, double> BaseResourceMode::defaultStatisticFunction(
         std::deque<StatisticEntry *> msg, int windowSize) {
-    std::map<std::string, double> resultMap;
+    std::map<StatisticResult, double> resultMap;
 
-    std::string lastStatus;
+    StatisticResult lastStatus;
     simtime_t lastTimestamp;
     bool lastSet = false;
 
     double period = std::min((double) windowSize, simTime().dbl()); // Should be 120 or the simulation time if less than 120
 
     for (auto *e : msg) {
-        std::string status;
+        StatisticResult status;
 
-        if (e->getActive()) {
-            if (e->getUsageType() == StatisticEntry::USAGE_BACKGROUND) {
-                status = "USED: BACKGROUND";
-            } else if (e->getUsageType() == StatisticEntry::USAGE_USER) {
-                status = "USED: USER";
-            } else {
-                throw cRuntimeError("Invalid type: %s",
-                        e->getUsageTypeString().c_str());
-            }
-
-        } else {
-            status = "FREE";
-        }
+        status.isActive = e->getActive();
+        status.usageType = e->getUsageType();
 
         if (!lastSet) {
             // first run: Store start values
@@ -138,15 +127,17 @@ inline std::map<std::string, double> BaseResourceMode::defaultStatisticFunction(
         resultMap[lastStatus] += (simTime() - lastTimestamp).dbl() / period;
     }
 
+
+
     return resultMap;
 }
 
 /**
  * Calculate the statistics using a callback function
  */
-inline std::map<std::string, double> BaseResourceMode::calcUserStats(
+inline std::map<StatisticResult, double> BaseResourceMode::calcUserStats(
         int windowSize,
-        std::map<std::string, double> (*f)(std::deque<StatisticEntry *> packets,
+        std::map<StatisticResult, double> (*f)(std::deque<StatisticEntry *> packets,
                 int windowSize)) {
     return (*f)(myUserPackets, windowSize);
 }
@@ -154,7 +145,7 @@ inline std::map<std::string, double> BaseResourceMode::calcUserStats(
 /**
  * Calculates the statistics using the default function
  */
-inline std::map<std::string, double> BaseResourceMode::calcUserStats(int windowSize) {
+inline std::map<StatisticResult, double> BaseResourceMode::calcUserStats(int windowSize) {
     return calcUserStats(windowSize, defaultStatisticFunction);
 }
 
