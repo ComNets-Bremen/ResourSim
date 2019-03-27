@@ -17,6 +17,13 @@
 
 cplusplus {{
 #include "BaseEventMessage_m.h"
+
+struct TrafficEventValues{
+    long mobile_rx;
+    long mobile_tx;
+    long total_rx;
+    long total_tx;
+};
 }}
 message BaseEventMessage;
 
