@@ -33,30 +33,37 @@ namespace eventsimulator {
 /**
  * TODO - Generated class
  */
-class SimpleWiFi : public BaseResourceMode, public cListener
-{
-  public:
+class SimpleWiFi: public BaseResourceMode, public cListener {
+public:
     SimpleWiFi();
     ~SimpleWiFi();
 
     void refreshDisplay() const;
 
     DeviceStates getDeviceState() const;
-    virtual void receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details);
-
+    virtual void receiveSignal(cComponent *component, simsignal_t signal,
+            bool b, cObject *details);
 
     void finish();
 
-  protected:
+protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
     void sendBatteryConsumptionEvent(simtime_t duration);
 
-  private:
+private:
     bool initialized = false;
-    int wifiStatus;
+    int lastReceivedWifiStatus;
+
+    void calcTrafficDelta(TrafficEventValues start, TrafficEventValues stop,
+            simtime_t duration);
 
     DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
+
+    long trafficTxNeglectable = 0;
+    long trafficRxNeglectable = 0;
+    long trafficTxTotal = 0;
+    long trafficRxTotal = 0;
 
     // Statistics
 
@@ -65,9 +72,24 @@ class SimpleWiFi : public BaseResourceMode, public cListener
     cOutVector wifiStatusOff;
     cOutVector wifiDeviceState;
 
+    cOutVector txBitPerSecond;
+    cOutVector RxBitPerSecond;
+
+    cHistogram totalRxKbHist;
+    cHistogram totalTxKbHist;
+
     long collisionBackground = 0;
     long collisionUser = 0;
     long collisionSelf = 0;
+
+    simtime_t lastTrafficEvent;
+    simtime_t lastUserWifiEvent;
+    simtime_t lastTrafficCalculation;
+
+    TrafficEventValues lastTrafficValues;
+    TrafficEventValues trafficWifiStartValues;
+
+    DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 
     simtime_t startOccupiedTime;
 

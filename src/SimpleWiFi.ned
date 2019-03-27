@@ -25,6 +25,8 @@ simple SimpleWiFi
         volatile int periodicStatsCollectionInterval @unit("s") = default(240s);
         
         volatile double txCurrentDrawn = default(0.1); // 100 mA, TODO: Check
+        
+        volatile double trafficNeglectable = default(10000); // 10kb
     gates:
         input in[];
         output out[];
