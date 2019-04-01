@@ -28,11 +28,12 @@ SimpleWiFi::SimpleWiFi() {
     txBitPerSecond.setName("WiFi bps TX");
     RxBitPerSecond.setName("WiFi bps RX");
 
-    totalRxKbHist.setName("Rx kb hist");
-    totalTxKbHist.setName("Tx kb hist");
+    TotalRxBitinInterval.setName("WiFi Bit TX in Interval");
+    TotalTxBitinInterval.setName("WiFi Bit RX in Interval");
 
     collectMeasurementsEvent = nullptr;
     backgroundServiceEndMessage = nullptr;
+
 }
 
 SimpleWiFi::~SimpleWiFi() {
@@ -119,7 +120,8 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 sendBatteryConsumptionEvent(duration);
 
                 if ((simTime() - lastTrafficEvent) < 2) {
-                    calcTrafficDelta(trafficWifiStartValues, lastTrafficValues, duration);
+                    calcTrafficDelta(trafficWifiStartValues, lastTrafficValues,
+                            duration);
                 }
             }
 
@@ -266,8 +268,9 @@ void SimpleWiFi::finish() {
     recordScalar("#txTotal", trafficTxTotal);
     recordScalar("#rxTotal", trafficRxTotal);
 
-    totalRxKbHist.recordAs("rx bytes");
-    totalTxKbHist.recordAs("tx bytes");
+    // recordAs sets up the bins. Conflict with the manual bin setup!
+    //totalTxKbHist.recordAs("TxKbHist");
+    //totalTxKbHist.recordAs("RxKbHist");
 
 }
 
@@ -312,22 +315,25 @@ void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
         EV_INFO << "Total kb rx: " << kbyteRx << std::endl;
         EV_INFO << "Total kb tx: " << kbyteTx << std::endl;
 
+//        totalRxKbHist.collect((stop.total_rx - start.total_rx));
+//        totalTxKbHist.collect((stop.total_tx - start.total_tx));
+        TotalRxBitinInterval.record((stop.total_rx - start.total_rx));
+        TotalTxBitinInterval.record((stop.total_tx - start.total_tx));
 
-        totalRxKbHist.collect((stop.total_rx - start.total_rx));
-        totalTxKbHist.collect((stop.total_tx - start.total_tx));
+        txBitPerSecond.record(
+                (double) (stop.total_tx - start.total_tx) / duration);
+        RxBitPerSecond.record(
+                (double) (stop.total_rx - start.total_rx) / duration);
 
-        txBitPerSecond.record((double)(stop.total_tx - start.total_tx)/duration);
-        RxBitPerSecond.record((double)(stop.total_rx - start.total_rx)/duration);
-
-
-        if ((stop.total_rx - start.total_rx)<par("trafficNeglectable").doubleValue())
+        if ((stop.total_rx - start.total_rx)
+                < par("trafficNeglectable").doubleValue())
             trafficRxNeglectable++;
-        if ((stop.total_tx - start.total_tx)<par("trafficNeglectable").doubleValue())
+        if ((stop.total_tx - start.total_tx)
+                < par("trafficNeglectable").doubleValue())
             trafficTxNeglectable++;
 
         trafficTxTotal++;
         trafficRxTotal++;
-
 
         lastTrafficCalculation = simTime();
     }

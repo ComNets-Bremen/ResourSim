@@ -75,8 +75,11 @@ private:
     cOutVector txBitPerSecond;
     cOutVector RxBitPerSecond;
 
-    cHistogram totalRxKbHist;
-    cHistogram totalTxKbHist;
+    cOutVector TotalRxBitinInterval;
+    cOutVector TotalTxBitinInterval;
+
+//    cHistogram totalRxKbHist;
+//    cHistogram totalTxKbHist;
 
     long collisionBackground = 0;
     long collisionUser = 0;
