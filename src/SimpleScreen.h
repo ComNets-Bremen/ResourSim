@@ -54,8 +54,8 @@ class SimpleScreen : public BaseResourceMode, public cListener
 
     cMessage *collectMeasurementsEvent;
 
-    cOutVector screenStatusValues;
-    cOutVector screenStatusPropability;
+    cOutVector *screenStatusValues;
+    cOutVector *screenStatusPropability;
 };
 
 } //namespace

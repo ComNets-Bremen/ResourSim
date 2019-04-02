@@ -20,27 +20,30 @@ namespace eventsimulator {
 Define_Module(SimpleScreen);
 
 SimpleScreen::SimpleScreen() {
-    screenStatusValues.setName("Screen Status");
-    screenStatusPropability.setName("Screen Status in Window");
+    screenStatusValues = new cOutVector("Screen Status");
+    screenStatusPropability = new cOutVector("Screen Status in Window");
     collectMeasurementsEvent = nullptr;
 }
 
 SimpleScreen::~SimpleScreen() {
     if (getSimulation()->getSystemModule()->isSubscribed(
-                CALCULATE_BATTERY_DIFFS, this))
-            getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
-                    this);
+    CALCULATE_BATTERY_DIFFS, this))
+        getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
+                this);
 
     cancelAndDelete(collectMeasurementsEvent);
+    delete screenStatusValues;
+    delete screenStatusPropability;
 }
 
 void SimpleScreen::initialize() {
     EV_INFO << "Init screen" << endl;
-    EV_INFO << "Window Size for statistics: " << par("statsWindowSize").intValue() << "s" << std::endl;
+    EV_INFO << "Window Size for statistics: "
+                   << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");
 
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
-                this);
+            this);
     initialized = true;
 }
 
@@ -70,17 +73,20 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         ScreenEventMessage *screenMsg = check_and_cast<ScreenEventMessage *>(
                 msg);
 
-        addMessageForUserStats(new StatisticEntry(screenMsg->getScreenOn(), screenMsg->getArrivalTime(), StatisticType::USAGE_USER));
+        addMessageForUserStats(
+                new StatisticEntry(screenMsg->getScreenOn(),
+                        screenMsg->getArrivalTime(),
+                        StatisticType::USAGE_USER));
 
         bool previousState = screenOn;
 
-        screenStatusValues.record(screenMsg->getScreenOn());
+        screenStatusValues->record(screenMsg->getScreenOn());
         screenOn = screenMsg->getScreenOn();
 
-        if (screenOn && !previousState){
+        if (screenOn && !previousState) {
             // off -> on
             screenSwitchedOn = simTime();
-        } else if (!screenOn && previousState){
+        } else if (!screenOn && previousState) {
             // on -> off
             simtime_t duration = simTime() - screenSwitchedOn;
             EV_INFO << "Screen duration " << duration << std::endl;
@@ -111,7 +117,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
 
         EV_INFO << "SCREEN PERIODIC: " << on << " " << off << std::endl;
 
-        screenStatusPropability.record(on);
+        screenStatusPropability->record(on);
 
         scheduleAt(
                 simTime() + par("periodicStatsCollectionInterval").intValue(),
@@ -120,8 +126,11 @@ void SimpleScreen::handleMessage(cMessage *msg) {
         // Message not for this module
         delete msg;
     }
-}
 
+    simsignal_t signal = registerSignal(SCREEN_STATUS_UPDATE_SIGNAL);
+    if (mayHaveListeners(signal))
+        emit(signal, screenOn);
+}
 
 void SimpleScreen::refreshDisplay() const {
     char buf[40];
@@ -139,10 +148,13 @@ void SimpleScreen::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_SCREEN);
     double chargeChange = -1 * par("screenCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+                   << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
 
-    if (gateSize("out") < 1) throw cRuntimeError("Invalid number of output gates: %d; must be >=1", gateSize("out"));
+    if (gateSize("out") < 1)
+        throw cRuntimeError("Invalid number of output gates: %d; must be >=1",
+                gateSize("out"));
 
     for (int i = 0; i < gateSize("out"); i++)
         send(cEvent->dup(), "out", i);
