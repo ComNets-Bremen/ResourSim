@@ -44,6 +44,7 @@ OBJS = \
     $O/src/SimplePercentageBattery.o \
     $O/src/SimpleScreen.o \
     $O/src/SimpleWiFi.o \
+    $O/src/SlidingDataset.o \
     $O/src/StatisticEntry.o \
     $O/src/background_messages/BackgroundEventMessage_m.o \
     $O/src/capacity_messages/CapacityEvent_m.o \
