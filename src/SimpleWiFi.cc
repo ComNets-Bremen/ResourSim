@@ -244,6 +244,10 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         // Message not for this module
         delete msg;
     }
+    simsignal_t signal = registerSignal(WIFI_STATUS_UPDATE_SIGNAL);
+    if (mayHaveListeners(signal))
+        emit(signal, deviceState);
+
 }
 
 void SimpleWiFi::refreshDisplay() const {
