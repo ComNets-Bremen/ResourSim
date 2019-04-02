@@ -16,23 +16,59 @@ public:
     /**
      * Helper class to calculate a sliding window value
      *
-     * double windowSize    Window size in seconds
+     * windowSize    Window size in seconds
      */
     SlidingDataset(double windowSize) {
         this->windowSize = windowSize;
     }
-    ;
 
+    /**
+     * Constructor with default window size (1/2 hour)
+     */
+    SlidingDataset(){
+        this->windowSize = 60*30; // 1/2 hour
+    }
+
+    /**
+     * Default destructor
+     */
     ~SlidingDataset() {
     }
 
     /**
+     * Set the window size
+     *
+     * windowSize   The window size in seconds
+     */
+    void setWindowSize(double windowSize){
+        this->windowSize = windowSize;
+    }
+
+    /**
+     * Return the window size
+     */
+    double getWindowSize(){
+        return this->windowSize;
+    }
+
+    /**
      * Add a dataset
+     *
+     * time     The time
+     * value    The value
      */
     void addDataset(simtime_t time, T value) {
         values.push_front(std::pair<simtime_t, T>(time, value));
     }
-    ;
+
+    /**
+     * Add a dataset using the current simTime()
+     *
+     * value    The value of type T to be added
+     */
+    void addDataset(T value) {
+        addDataset(simTime(), value);
+    }
 
     /**
      * Get the number of stored values
@@ -61,12 +97,12 @@ public:
      * Get the percentage of the current value. The template type has to
      * be comparable via = operator.
      *
-     * Use the current SimTime()
+     * Use the current simTime()
      *
      * value    The value to check for
      */
     double getPercentageOfValue(T value) {
-        return getPercentageOfValue(value, SimTime());
+        return getPercentageOfValue(value, simTime());
     }
 
     /**
@@ -111,9 +147,11 @@ public:
         resultMap[lastPair.second] += (upperBound - lastPair.first).dbl()
                 / (upperBound - lowerBound);
 
+        /*
         for (auto v : resultMap) {
             EV_INFO << v.first << " : " << v.second << std::endl;
         }
+        */
 
         return resultMap[value];
     }
