@@ -106,13 +106,26 @@ public:
     }
 
     /**
+         * Get the percentage of the current value. The template type has to
+         * be comparable via = operator.
+         *
+         * value    The value to check for
+         * time     The timestamp to use
+         */
+    double getPercentageOfValue(T value, simtime_t time){
+        return getPercentageOfValue(value, time, this->windowSize);
+    }
+
+
+    /**
      * Get the percentage of the current value. The template type has to
      * be comparable via = operator.
      *
      * value    The value to check for
      * time     The timestamp to use
+     * windowSize   The windowSize
      */
-    double getPercentageOfValue(T value, simtime_t time) {
+    double getPercentageOfValue(T value, simtime_t time, double windowSize) {
         std::map<T, double> resultMap;
         simtime_t lowerBound = time - windowSize;
         if (time < windowSize)
@@ -154,6 +167,10 @@ public:
         */
 
         return resultMap[value];
+    }
+
+    double getPercentageOfValue24Hrs(T value){
+        return getPercentageOfValue(value, simTime(), 60*60*24);
     }
 
     /**
