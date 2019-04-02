@@ -20,7 +20,7 @@ namespace eventsimulator {
 Define_Module(SimpleBluetooth);
 
 SimpleBluetooth::SimpleBluetooth() {
-    bluetoothStatusValues.setName("Bluetooth Status");
+    bluetoothStatusValues = new cOutVector("Bluetooth Status");
 }
 
 SimpleBluetooth::~SimpleBluetooth() {
@@ -28,6 +28,7 @@ SimpleBluetooth::~SimpleBluetooth() {
     CALCULATE_BATTERY_DIFFS, this))
         getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
                 this);
+    delete bluetoothStatusValues;
 
 }
 
@@ -67,7 +68,7 @@ void SimpleBluetooth::handleMessage(cMessage *msg) {
         BluetoothEventMessage *bluetoothMsg = check_and_cast<
                 BluetoothEventMessage *>(msg);
         bluetoothStatus = bluetoothMsg->getBluetooth_status();
-        bluetoothStatusValues.record(bluetoothStatus);
+        bluetoothStatusValues->record(bluetoothStatus);
 
         switch (bluetoothStatus) {
         case BLUETOOTH_STATE_ON:

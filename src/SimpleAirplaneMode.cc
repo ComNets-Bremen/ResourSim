@@ -20,11 +20,11 @@ namespace eventsimulator {
 Define_Module(SimpleAirplaneMode);
 
 SimpleAirplaneMode::SimpleAirplaneMode() {
-    airplaneModeValues.setName("Airplane Mode on");
+    airplaneModeValues = new cOutVector("Airplane Mode on");
 }
 
 SimpleAirplaneMode::~SimpleAirplaneMode() {
-
+    delete airplaneModeValues;
 }
 
 void SimpleAirplaneMode::initialize() {
@@ -43,7 +43,7 @@ void SimpleAirplaneMode::handleMessage(cMessage *msg) {
         }
         AirplaneModeEventMessage * airplaneMsg = check_and_cast<
                 AirplaneModeEventMessage *>(msg);
-        airplaneModeValues.record(airplaneMsg->getAirplaneModeOn());
+        airplaneModeValues->record(airplaneMsg->getAirplaneModeOn());
         airplaneModeOn = airplaneMsg->getAirplaneModeOn();
 
         delete airplaneMsg;

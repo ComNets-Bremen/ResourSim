@@ -45,7 +45,7 @@ class SimpleBluetooth : public cSimpleModule, public cListener
     bool initialized = false;
     int bluetoothStatus;
     bool bluetoothIsUsed = false;
-    cOutVector bluetoothStatusValues;
+    cOutVector *bluetoothStatusValues;
 
     simtime_t startOccupiedTime;
 };
