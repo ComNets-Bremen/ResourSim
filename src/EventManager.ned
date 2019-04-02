@@ -27,6 +27,10 @@ simple EventManager
         volatile bool stopForwardingDeviceDead = default(false);
         volatile int sendBatteryCollectSignalEvent @unit("s") = default(240s);
         
+        volatile int collectDecisionDatasets @unit("s") = default(600s);
+        
+        volatile int decisionWindow @unit("s") = default(1800s);
+        
         volatile bool ignoreBackgroundEventsBatteryInconvenient = default(false);
     gates:
         input in[];

@@ -22,6 +22,10 @@
 #include "capacity_messages/CapacityMessages.h"
 #include "ResourceSignals.h"
 
+#include "DeviceStates.h"
+
+#include "SlidingDataset.h"
+
 using namespace omnetpp;
 
 namespace eventsimulator {
@@ -37,6 +41,7 @@ public:
     virtual ~EventManager();
     virtual void receiveSignal(cComponent *, simsignal_t, bool b, cObject *details);
     virtual void receiveSignal(cComponent *, simsignal_t, double d, cObject *details);
+    virtual void receiveSignal(cComponent *, simsignal_t, long l, cObject *details);
 
     void refreshDisplay() const;
 
@@ -61,6 +66,16 @@ private:
 
     cMessage *sendSignal_calculateBatteryDiffsEvent;
 
+    SlidingDataset<bool> screenDecision;
+    SlidingDataset<long> wifiDecision;
+
+    cMessage *collectDecisionDatasetsEvent;
+
+    cOutVector *screenDecisionStats;
+    cOutVector *screenDecisionStats24hrs;
+
+    cOutVector *wifiDecisionStatsUser;
+    cOutVector *wifiDecisionStatsUser24hrs;
 };
 
 }; // namespace

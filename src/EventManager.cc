@@ -33,27 +33,77 @@ void EventManager::initialize() {
     isDeviceDead = false;
 
     sendSignal_calculateBatteryDiffsEvent = new cMessage(
-            CALCULATE_BATTERY_DIFFS);
+    CALCULATE_BATTERY_DIFFS);
     scheduleAt(0, sendSignal_calculateBatteryDiffsEvent);
+
+    collectDecisionDatasetsEvent = new cMessage("collectDecisionMeasurements");
+    scheduleAt(0, collectDecisionDatasetsEvent);
 
     batteryRecalcId = registerSignal(CALCULATE_BATTERY_DIFFS);
 
     getSimulation()->getSystemModule()->subscribe(BATTERY_PERCENTAGE_SIGNAL,
             this);
+
     getSimulation()->getSystemModule()->subscribe(BATTERY_INCONVENIENT_SIGNAL,
             this);
+
+    getSimulation()->getSystemModule()->subscribe(WIFI_STATUS_UPDATE_SIGNAL,
+            this);
+
+    getSimulation()->getSystemModule()->subscribe(SCREEN_STATUS_UPDATE_SIGNAL,
+            this);
+
+    screenDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
+    wifiDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
+
+    screenDecisionStats = new cOutVector("ScreenStats");
+    screenDecisionStats24hrs = new cOutVector("ScreenStats24hrs");
+
+    wifiDecisionStatsUser = new cOutVector("WifiStatsUser");
+    wifiDecisionStatsUser24hrs = new cOutVector("WifiStatsUser24hrs");
+
+    /*
+     SlidingDataset<bool> screenDecision(par("decisionWindow").doubleValue());
+     screenDecision.addDataset(1, 1);
+     screenDecision.addDataset(2, 0);
+     screenDecision.addDataset(3, 1);
+     screenDecision.addDataset(4, 2);
+     float val = screenDecision.getPercentageOfValue(434, 4);
+     EV_INFO << "percentage of value: " << val << std::endl;
+
+     EV_INFO << "Deque: " << screenDecision.getLen() << std::endl;
+     screenDecision.printDeque();
+     */
 }
 
 EventManager::~EventManager() {
     if (getSimulation()->getSystemModule()->isSubscribed(
-            BATTERY_PERCENTAGE_SIGNAL, this))
+    BATTERY_PERCENTAGE_SIGNAL, this))
         getSimulation()->getSystemModule()->unsubscribe(
-                BATTERY_PERCENTAGE_SIGNAL, this);
+        BATTERY_PERCENTAGE_SIGNAL, this);
+
     if (getSimulation()->getSystemModule()->isSubscribed(
-            BATTERY_INCONVENIENT_SIGNAL, this))
+    BATTERY_INCONVENIENT_SIGNAL, this))
         getSimulation()->getSystemModule()->unsubscribe(
-                BATTERY_INCONVENIENT_SIGNAL, this);
+        BATTERY_INCONVENIENT_SIGNAL, this);
+
+    if (getSimulation()->getSystemModule()->isSubscribed(
+    WIFI_STATUS_UPDATE_SIGNAL, this))
+        getSimulation()->getSystemModule()->unsubscribe(
+        WIFI_STATUS_UPDATE_SIGNAL, this);
+
+    if (getSimulation()->getSystemModule()->isSubscribed(
+    SCREEN_STATUS_UPDATE_SIGNAL, this))
+        getSimulation()->getSystemModule()->unsubscribe(
+        SCREEN_STATUS_UPDATE_SIGNAL, this);
+
     cancelAndDelete(sendSignal_calculateBatteryDiffsEvent);
+    cancelAndDelete(collectDecisionDatasetsEvent);
+
+    delete screenDecisionStats;
+    delete screenDecisionStats24hrs;
+    delete wifiDecisionStatsUser;
+    delete wifiDecisionStatsUser24hrs;
 }
 
 void EventManager::handleMessage(cMessage *msg) {
@@ -119,10 +169,20 @@ void EventManager::handleMessage(cMessage *msg) {
             delete msg;
             return;
         }
-        EV_INFO << "Capacy event" << std::endl;
+        EV_INFO << "Capacity event" << std::endl;
         for (int i = 0; i < gateSize("out"); i++)
             send(msg->dup(), "out", i);
         delete msg;
+
+    } else if (msg == collectDecisionDatasetsEvent) {
+        EV_INFO << "Plot statistics for decision making" << std::endl;
+        screenDecisionStats->record(screenDecision.getPercentageOfValue(true));
+        screenDecisionStats24hrs->record(screenDecision.getPercentageOfValue24Hrs(true));
+
+        wifiDecisionStatsUser->record(wifiDecision.getPercentageOfValue(DEVICE_STATE_OCCUPIED_USER));
+        wifiDecisionStatsUser24hrs->record(wifiDecision.getPercentageOfValue24Hrs(DEVICE_STATE_OCCUPIED_USER));
+
+        scheduleAt(simTime() + par("collectDecisionDatasets").intValue(), msg);
 
     } else {
         EV_ERROR << "Undefined message Type" << endl;
@@ -147,6 +207,12 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
     if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)) {
         EV_INFO << "DEVICE inconvenient" << std::endl;
         isDeviceCritical = b;
+    } else if (signal == registerSignal(SCREEN_STATUS_UPDATE_SIGNAL)) {
+        screenDecision.addDataset(b);
+        EV_INFO << "RX SCREEN STATUS MESSAGE " << b
+                       << " Screen was occupied by user: "
+                       << screenDecision.getPercentageOfValue(true)
+                       << std::endl;
     }
 }
 
@@ -164,6 +230,15 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d,
     }
 }
 
+void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
+        cObject *details) {
+    if (signal == registerSignal(WIFI_STATUS_UPDATE_SIGNAL)) {
+        wifiDecision.addDataset(l);
+        EV_INFO << "WIFI STATUS IS IN RECEIVER " << l << " WiFi was on: "
+                       << wifiDecision.getPercentageOfValue(
+                               DEVICE_STATE_OCCUPIED_USER) << std::endl;
+    }
+}
 }
 ;
 // namespace
