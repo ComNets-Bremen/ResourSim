@@ -19,9 +19,7 @@ namespace eventsimulator {
 
 Define_Module(SimpleAirplaneMode);
 
-SimpleAirplaneMode::SimpleAirplaneMode() {
-    airplaneModeValues = new cOutVector("Airplane Mode on");
-}
+SimpleAirplaneMode::SimpleAirplaneMode() {}
 
 SimpleAirplaneMode::~SimpleAirplaneMode() {
     delete airplaneModeValues;
@@ -29,6 +27,7 @@ SimpleAirplaneMode::~SimpleAirplaneMode() {
 
 void SimpleAirplaneMode::initialize() {
     EV_INFO << "Init airplane mode" << endl;
+    airplaneModeValues = new cOutVector("Airplane Mode on");
     // TODO: Init??
     initialized = true;
 }

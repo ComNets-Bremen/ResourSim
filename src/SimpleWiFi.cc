@@ -20,17 +20,6 @@ namespace eventsimulator {
 Define_Module(SimpleWiFi);
 
 SimpleWiFi::SimpleWiFi() {
-    wifiStatusValues.setName("WiFi Status");
-    wifiStatusOn.setName("WiFi on (Window)");
-    wifiStatusOff.setName("WiFi off (Window)");
-    wifiDeviceState.setName("Simple WiFi device State");
-
-    txBitPerSecond.setName("WiFi bps TX");
-    RxBitPerSecond.setName("WiFi bps RX");
-
-    TotalRxBitinInterval.setName("WiFi Bit TX in Interval");
-    TotalTxBitinInterval.setName("WiFi Bit RX in Interval");
-
     collectMeasurementsEvent = nullptr;
     backgroundServiceEndMessage = nullptr;
 
@@ -47,6 +36,17 @@ SimpleWiFi::~SimpleWiFi() {
 
 void SimpleWiFi::initialize() {
     EV << "Init WiFi status" << endl;
+    wifiStatusValues.setName("WiFi Status");
+    wifiStatusOn.setName("WiFi on (Window)");
+    wifiStatusOff.setName("WiFi off (Window)");
+    wifiDeviceState.setName("Simple WiFi device State");
+
+    txBitPerSecond.setName("WiFi bps TX");
+    RxBitPerSecond.setName("WiFi bps RX");
+
+    TotalRxBitinInterval.setName("WiFi Bit TX in Interval");
+    TotalTxBitinInterval.setName("WiFi Bit RX in Interval");
+
     EV_INFO << "Window Size for statistics: "
                    << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");

@@ -19,9 +19,7 @@ namespace eventsimulator {
 
 Define_Module(SimpleBluetooth);
 
-SimpleBluetooth::SimpleBluetooth() {
-    bluetoothStatusValues = new cOutVector("Bluetooth Status");
-}
+SimpleBluetooth::SimpleBluetooth() {}
 
 SimpleBluetooth::~SimpleBluetooth() {
     if (getSimulation()->getSystemModule()->isSubscribed(
@@ -34,9 +32,11 @@ SimpleBluetooth::~SimpleBluetooth() {
 
 void SimpleBluetooth::initialize() {
     EV << "Init Bluetooth status" << endl;
+    bluetoothStatusValues = new cOutVector("Bluetooth Status");
 
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
                 this);
+
     // TODO: Init something?
     initialized = true;
 }

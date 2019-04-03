@@ -20,8 +20,6 @@ namespace eventsimulator {
 Define_Module(SimpleScreen);
 
 SimpleScreen::SimpleScreen() {
-    screenStatusValues = new cOutVector("Screen Status");
-    screenStatusPropability = new cOutVector("Screen Status in Window");
     collectMeasurementsEvent = nullptr;
 }
 
@@ -38,12 +36,16 @@ SimpleScreen::~SimpleScreen() {
 
 void SimpleScreen::initialize() {
     EV_INFO << "Init screen" << endl;
+    screenStatusValues = new cOutVector("Screen Status");
+    screenStatusPropability = new cOutVector("Screen Status in Window");
+
     EV_INFO << "Window Size for statistics: "
                    << par("statsWindowSize").intValue() << "s" << std::endl;
     collectMeasurementsEvent = new cMessage("collectMeasurements");
 
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
             this);
+
     initialized = true;
 }
 

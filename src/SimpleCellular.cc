@@ -19,9 +19,7 @@ namespace eventsimulator {
 
 Define_Module(SimpleCellular);
 
-SimpleCellular::SimpleCellular() {
-    cellularStatusValues.setName("Cellular Status");
-}
+SimpleCellular::SimpleCellular() {}
 
 SimpleCellular::~SimpleCellular() {
     if (getSimulation()->getSystemModule()->isSubscribed(
@@ -34,8 +32,11 @@ SimpleCellular::~SimpleCellular() {
 void SimpleCellular::initialize() {
     EV << "Init cellular status" << endl;
 
+    cellularStatusValues = new cOutVector("Cellular Status");
+
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
             this);
+
     // TODO: Init something?
     initialized = true;
 }
@@ -72,7 +73,7 @@ void SimpleCellular::handleMessage(cMessage *msg) {
                 CellularEventMessage *>(msg);
         cellularStatus = cellularMsg->getCellular_state();
         networkTypeName = cellularMsg->getCellular_type();
-        cellularStatusValues.record(cellularStatus);
+        cellularStatusValues->record(cellularStatus);
 
         switch (cellularStatus) {
         // TODO: Check if all offer Internet connectivity

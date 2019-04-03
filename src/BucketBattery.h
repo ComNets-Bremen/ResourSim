@@ -50,10 +50,10 @@ private:
     bool lastStateIsCharging = false;
     simtime_t lastBatteryStateChange;
 
-    cOutVector currentBatteryCharge;   // C
-    cOutVector currentBatteryPercentage; // %
-    cOutVector batteryCritical; // 1/0
-    cOutVector batteryIsCharging; // 1/0
+    cOutVector *currentBatteryCharge;   // C
+    cOutVector *currentBatteryPercentage; // %
+    cOutVector *batteryCritical; // 1/0
+    cOutVector *batteryIsCharging; // 1/0
 
     simsignal_t batteryPercentageSignalId;
     simsignal_t batteryPercentageInconvinientSignalId;
