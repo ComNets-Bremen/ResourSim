@@ -85,7 +85,7 @@ public:
      * Remove values older than the windows size
      */
     void cleanup() {
-        while (values.size() > 1
+        while (values.size() > 3
                 && values[values.size() - 2].first
                         < (values.front().first - windowSize)) {
             values.pop_back();
@@ -126,14 +126,13 @@ public:
      * windowSize   The windowSize
      */
     double getPercentageOfValue(T value, simtime_t time, double windowSize) {
+        cleanup();
         std::map<T, double> resultMap;
         simtime_t lowerBound = time - windowSize;
         if (time < windowSize)
             lowerBound = values.back().first; // Timestamp of 1st value
         simtime_t upperBound = time;
         std::pair<simtime_t, T> lastPair;
-
-        cleanup();
 
         for (auto v = values.rbegin(); v != values.rend(); v++) {
 
@@ -160,11 +159,11 @@ public:
         resultMap[lastPair.second] += (upperBound - lastPair.first).dbl()
                 / (upperBound - lowerBound);
 
-        /*
+
         for (auto v : resultMap) {
             EV_INFO << v.first << " : " << v.second << std::endl;
         }
-        */
+
 
         return resultMap[value];
     }
