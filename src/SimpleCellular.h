@@ -48,7 +48,7 @@ class SimpleCellular : public cSimpleModule, public cListener
     bool cellularIsUsed = false;
     std::string networkTypeName = "NOT_INITIALIZED";
 
-    cOutVector *cellularStatusValues;
+    cOutVector cellularStatusValues;
 
     simtime_t startOccupiedTime;
 };

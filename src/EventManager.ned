@@ -25,13 +25,19 @@ simple EventManager
         @display("i=status/status_okay");
         // Stop forwarding messages if device is dead
         volatile bool stopForwardingDeviceDead = default(false);
+        
         volatile int sendBatteryCollectSignalEvent @unit("s") = default(240s);
         
+        // Collect data for graphing
         volatile int collectDecisionDatasets @unit("s") = default(600s);
         
-        volatile int decisionWindow @unit("s") = default(1800s);
-        
+        // General optimizations
+        volatile bool enableBackgroundOptimizations = default(false);
         volatile bool ignoreBackgroundEventsBatteryInconvenient = default(false);
+        volatile bool analyzeUserScreenActivity = default(false);
+        
+        // Use the average window for the decision
+        volatile int decisionWindow @unit("s") = default(1800s);
     gates:
         input in[];
         output out[];

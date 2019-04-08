@@ -127,6 +127,9 @@ public:
      */
     double getPercentageOfValue(T value, simtime_t time, double windowSize) {
         cleanup();
+        if (values.empty()){
+            return 0.0;
+        }
         std::map<T, double> resultMap;
         simtime_t lowerBound = time - windowSize;
         if (time < windowSize)
@@ -159,12 +162,7 @@ public:
         resultMap[lastPair.second] += (upperBound - lastPair.first).dbl()
                 / (upperBound - lowerBound);
 
-
-        for (auto v : resultMap) {
-            EV_INFO << v.first << " : " << v.second << std::endl;
-        }
-
-
+        if (resultMap.count(value) == 0) return 0.0;
         return resultMap[value];
     }
 

@@ -26,13 +26,11 @@ SimpleBluetooth::~SimpleBluetooth() {
     CALCULATE_BATTERY_DIFFS, this))
         getSimulation()->getSystemModule()->unsubscribe(CALCULATE_BATTERY_DIFFS,
                 this);
-    delete bluetoothStatusValues;
-
 }
 
 void SimpleBluetooth::initialize() {
     EV << "Init Bluetooth status" << endl;
-    bluetoothStatusValues = new cOutVector("Bluetooth Status");
+    bluetoothStatusValues.setName("Bluetooth Status");
 
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
                 this);
@@ -68,7 +66,7 @@ void SimpleBluetooth::handleMessage(cMessage *msg) {
         BluetoothEventMessage *bluetoothMsg = check_and_cast<
                 BluetoothEventMessage *>(msg);
         bluetoothStatus = bluetoothMsg->getBluetooth_status();
-        bluetoothStatusValues->record(bluetoothStatus);
+        bluetoothStatusValues.record(bluetoothStatus);
 
         switch (bluetoothStatus) {
         case BLUETOOTH_STATE_ON:

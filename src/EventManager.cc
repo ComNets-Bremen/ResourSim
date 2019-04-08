@@ -56,24 +56,16 @@ void EventManager::initialize() {
     screenDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
     wifiDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
 
-    screenDecisionStats = new cOutVector("ScreenStats");
-    screenDecisionStats24hrs = new cOutVector("ScreenStats24hrs");
+    screenDecisionStats.setName("ScreenStats");
+    screenDecisionStats24hrs.setName("ScreenStats24hrs");
 
-    wifiDecisionStatsUser = new cOutVector("WifiStatsUser");
-    wifiDecisionStatsUser24hrs = new cOutVector("WifiStatsUser24hrs");
+    wifiDecisionStatsUser.setName("WifiStatsUser");
+    wifiDecisionStatsUser24hrs.setName("WifiStatsUser24hrs");
 
-    /*
-     SlidingDataset<bool> screenDecision(par("decisionWindow").doubleValue());
-     screenDecision.addDataset(1, 1);
-     screenDecision.addDataset(2, 0);
-     screenDecision.addDataset(3, 1);
-     screenDecision.addDataset(4, 2);
-     float val = screenDecision.getPercentageOfValue(434, 4);
-     EV_INFO << "percentage of value: " << val << std::endl;
+    cancelEventTimes.setName("CancelEvent");
 
-     EV_INFO << "Deque: " << screenDecision.getLen() << std::endl;
-     screenDecision.printDeque();
-     */
+    numberBackgroundEvents = 0;
+    numberCancelledBackgroundEvents = 0;
 }
 
 EventManager::~EventManager() {
@@ -99,11 +91,6 @@ EventManager::~EventManager() {
 
     cancelAndDelete(sendSignal_calculateBatteryDiffsEvent);
     cancelAndDelete(collectDecisionDatasetsEvent);
-
-    delete screenDecisionStats;
-    delete screenDecisionStats24hrs;
-    delete wifiDecisionStatsUser;
-    delete wifiDecisionStatsUser24hrs;
 }
 
 void EventManager::handleMessage(cMessage *msg) {
@@ -127,14 +114,35 @@ void EventManager::handleMessage(cMessage *msg) {
         }
 
         // Implement the background service scheduling here!
+        numberBackgroundEvents++;
 
-        if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
-                && isDeviceCritical) {
-            EV_INFO
-                           << "Ignoring background message: Device in inconvenient mode"
-                           << std::endl;
-            delete msg;
-            return;
+        if (par("enableBackgroundOptimizations").boolValue()) {
+            // Do not sent messages if battery is weak
+
+            if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
+                    && isDeviceCritical) {
+                EV_INFO
+                               << "Ignoring background message: Device in inconvenient mode"
+                               << std::endl;
+                delete msg;
+                numberCancelledBackgroundEvents++;
+                cancelEventTimes.record(1);
+                return;
+            }
+
+            if (par("analyzeUserScreenActivity").boolValue()) {
+                if (screenDecision.getPercentageOfValue(true)
+                        > screenDecision.getPercentageOfValue24Hrs(true)) {
+                    // User was using the device more often compared to the 24hrs average
+                    EV_INFO << "Ignore background task: User is active!"
+                                   << std::endl;
+                    delete msg;
+                    numberCancelledBackgroundEvents++;
+                    cancelEventTimes.record(1);
+                    return;
+                }
+            }
+            cancelEventTimes.record(0);
         }
 
         // Forward to all nodes
@@ -176,11 +184,16 @@ void EventManager::handleMessage(cMessage *msg) {
 
     } else if (msg == collectDecisionDatasetsEvent) {
         EV_INFO << "Plot statistics for decision making" << std::endl;
-        screenDecisionStats->record(screenDecision.getPercentageOfValue(true));
-        screenDecisionStats24hrs->record(screenDecision.getPercentageOfValue24Hrs(true));
 
-        wifiDecisionStatsUser->record(wifiDecision.getPercentageOfValue(DEVICE_STATE_OCCUPIED_USER));
-        wifiDecisionStatsUser24hrs->record(wifiDecision.getPercentageOfValue24Hrs(DEVICE_STATE_OCCUPIED_USER));
+        screenDecisionStats.record(screenDecision.getPercentageOfValue(true));
+        screenDecisionStats24hrs.record(
+                screenDecision.getPercentageOfValue24Hrs(true));
+
+        wifiDecisionStatsUser.record(
+                wifiDecision.getPercentageOfValue(DEVICE_STATE_OCCUPIED_USER));
+        wifiDecisionStatsUser24hrs.record(
+                wifiDecision.getPercentageOfValue24Hrs(
+                        DEVICE_STATE_OCCUPIED_USER));
 
         scheduleAt(simTime() + par("collectDecisionDatasets").intValue(), msg);
 
@@ -239,6 +252,13 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
                                DEVICE_STATE_OCCUPIED_USER) << std::endl;
     }
 }
+
+void EventManager::finish() {
+    recordScalar("Number of Background Events", numberBackgroundEvents);
+    recordScalar("Number of cancelled background Events",
+            numberCancelledBackgroundEvents);
+}
+
 }
 ;
 // namespace

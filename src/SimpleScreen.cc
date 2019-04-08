@@ -30,14 +30,12 @@ SimpleScreen::~SimpleScreen() {
                 this);
 
     cancelAndDelete(collectMeasurementsEvent);
-    delete screenStatusValues;
-    delete screenStatusPropability;
 }
 
 void SimpleScreen::initialize() {
     EV_INFO << "Init screen" << endl;
-    screenStatusValues = new cOutVector("Screen Status");
-    screenStatusPropability = new cOutVector("Screen Status in Window");
+    screenStatusValues.setName("Screen Status");
+    screenStatusPropability.setName("Screen Status in Window");
 
     EV_INFO << "Window Size for statistics: "
                    << par("statsWindowSize").intValue() << "s" << std::endl;
@@ -82,7 +80,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
 
         bool previousState = screenOn;
 
-        screenStatusValues->record(screenMsg->getScreenOn());
+        screenStatusValues.record(screenMsg->getScreenOn());
         screenOn = screenMsg->getScreenOn();
 
         if (screenOn && !previousState) {
@@ -119,7 +117,7 @@ void SimpleScreen::handleMessage(cMessage *msg) {
 
         EV_INFO << "SCREEN PERIODIC: " << on << " " << off << std::endl;
 
-        screenStatusPropability->record(on);
+        screenStatusPropability.record(on);
 
         scheduleAt(
                 simTime() + par("periodicStatsCollectionInterval").intValue(),

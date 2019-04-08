@@ -32,7 +32,7 @@ SimpleCellular::~SimpleCellular() {
 void SimpleCellular::initialize() {
     EV << "Init cellular status" << endl;
 
-    cellularStatusValues = new cOutVector("Cellular Status");
+    cellularStatusValues.setName("Cellular Status");
 
     getSimulation()->getSystemModule()->subscribe(CALCULATE_BATTERY_DIFFS,
             this);
@@ -73,7 +73,7 @@ void SimpleCellular::handleMessage(cMessage *msg) {
                 CellularEventMessage *>(msg);
         cellularStatus = cellularMsg->getCellular_state();
         networkTypeName = cellularMsg->getCellular_type();
-        cellularStatusValues->record(cellularStatus);
+        cellularStatusValues.record(cellularStatus);
 
         switch (cellularStatus) {
         // TODO: Check if all offer Internet connectivity

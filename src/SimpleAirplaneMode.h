@@ -40,7 +40,8 @@ public:
   private:
     bool initialized = false;
     bool airplaneModeOn = false;
-    cOutVector *airplaneModeValues;
+
+    cOutVector airplaneModeValues;
 };
 
 } // namespace

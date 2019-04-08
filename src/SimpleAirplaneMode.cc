@@ -21,13 +21,11 @@ Define_Module(SimpleAirplaneMode);
 
 SimpleAirplaneMode::SimpleAirplaneMode() {}
 
-SimpleAirplaneMode::~SimpleAirplaneMode() {
-    delete airplaneModeValues;
-}
+SimpleAirplaneMode::~SimpleAirplaneMode() {}
 
 void SimpleAirplaneMode::initialize() {
     EV_INFO << "Init airplane mode" << endl;
-    airplaneModeValues = new cOutVector("Airplane Mode on");
+    airplaneModeValues.setName("Airplane Mode on");
     // TODO: Init??
     initialized = true;
 }
@@ -42,7 +40,7 @@ void SimpleAirplaneMode::handleMessage(cMessage *msg) {
         }
         AirplaneModeEventMessage * airplaneMsg = check_and_cast<
                 AirplaneModeEventMessage *>(msg);
-        airplaneModeValues->record(airplaneMsg->getAirplaneModeOn());
+        airplaneModeValues.record(airplaneMsg->getAirplaneModeOn());
         airplaneModeOn = airplaneMsg->getAirplaneModeOn();
 
         delete airplaneMsg;

@@ -44,6 +44,7 @@ public:
     virtual void receiveSignal(cComponent *, simsignal_t, long l, cObject *details);
 
     void refreshDisplay() const;
+    void finish();
 
 protected:
     virtual void initialize();
@@ -71,11 +72,16 @@ private:
 
     cMessage *collectDecisionDatasetsEvent;
 
-    cOutVector *screenDecisionStats;
-    cOutVector *screenDecisionStats24hrs;
+    cOutVector screenDecisionStats;
+    cOutVector screenDecisionStats24hrs;
 
-    cOutVector *wifiDecisionStatsUser;
-    cOutVector *wifiDecisionStatsUser24hrs;
+    cOutVector wifiDecisionStatsUser;
+    cOutVector wifiDecisionStatsUser24hrs;
+
+    cOutVector cancelEventTimes;
+
+    long numberBackgroundEvents;
+    long numberCancelledBackgroundEvents;
 };
 
 }; // namespace

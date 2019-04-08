@@ -38,9 +38,8 @@ protected:
     void sendBatteryConsumptionEvent(simtime_t duration);
 
 private:
-    bool isCpuUsed = false;
     simtime_t cpuUsageStarted = 0;
-    cMessage *backgroundServiceEndMessage;
+    cMessage *backgroundServiceEndMessage = nullptr;
     bool initialized;
 };
 

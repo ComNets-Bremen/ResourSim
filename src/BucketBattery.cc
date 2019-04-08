@@ -25,19 +25,14 @@ BucketBattery::BucketBattery() {
 
 BucketBattery::~BucketBattery() {
     cancelAndDelete(collectMeasurementsEvent);
-
-    delete currentBatteryCharge;
-    delete currentBatteryPercentage;
-    delete batteryCritical;
-    delete batteryIsCharging;
 }
 
 void BucketBattery::initialize() {
 
-    currentBatteryCharge = new cOutVector("Current capacity in C");
-    currentBatteryPercentage = new cOutVector("Current capacity in %");
-    batteryCritical = new cOutVector("Battery critical");
-    batteryIsCharging = new cOutVector("Is Charging");
+    currentBatteryCharge.setName("Current capacity in C");
+    currentBatteryPercentage.setName("Current capacity in %");
+    batteryCritical.setName("Battery critical");
+    batteryIsCharging.setName("Is Charging");
 
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
@@ -94,8 +89,8 @@ void BucketBattery::handleMessage(cMessage *msg) {
 
     } else if (msg == collectMeasurementsEvent) {
         EV_INFO << "Periodic data collection" << std::endl;
-        currentBatteryCharge->record(getBatteryChargeCoulomb());
-        currentBatteryPercentage->record(getBatteryChargePercent());
+        currentBatteryCharge.record(getBatteryChargeCoulomb());
+        currentBatteryPercentage.record(getBatteryChargePercent());
 
         scheduleAt(
                 simTime() + par("periodicStatsCollectionInterval").intValue(),
@@ -114,7 +109,7 @@ void BucketBattery::handleMessage(cMessage *msg) {
         delete msg;
     }
 
-    batteryIsCharging->record(lastStateIsCharging);
+    batteryIsCharging.record(lastStateIsCharging);
 
     if (mayHaveListeners(batteryPercentageSignalId)
             || mayHaveListeners(batteryPercentageInconvinientSignalId)) {
@@ -153,10 +148,10 @@ void BucketBattery::recalculateBatteryCharge() {
     if (batteryCharge / par("batteryCapacityCoulomb").doubleValue()
             < par("inconvenientBatteryThreshold").doubleValue()) {
         // Critical battery value
-        batteryCritical->record(1);
+        batteryCritical.record(1);
     } else {
         // battery level okay
-        batteryCritical->record(0);
+        batteryCritical.record(0);
     }
     EV_INFO << "Recalc battery stat end: " << batteryCharge << std::endl;
 }

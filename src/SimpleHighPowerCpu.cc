@@ -39,10 +39,10 @@ void SimpleHighPowerCpu::initialize() {
 void SimpleHighPowerCpu::handleMessage(cMessage *msg) {
     if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr){
         BackgroundEventMessage *backgroundEventMessage = check_and_cast<BackgroundEventMessage *>(msg);
-        if (backgroundEventMessage->getBackgroundType() == BACKGROUND_EVENT_TYPE_CPU && !isCpuUsed){
+
+        if (backgroundEventMessage->getBackgroundType() == BACKGROUND_EVENT_TYPE_CPU && backgroundServiceEndMessage != nullptr){
             EV_INFO << "High power CPU usage started" << std::endl;
             simtime_t duration = backgroundEventMessage->getDuration();
-            isCpuUsed = true;
             cpuUsageStarted = simTime();
             backgroundServiceEndMessage = new cMessage("End Background Service");
             scheduleAt(simTime() + duration, backgroundServiceEndMessage);
@@ -51,7 +51,7 @@ void SimpleHighPowerCpu::handleMessage(cMessage *msg) {
         EV_INFO << "High power CPU usage finished" << std::endl;
         simtime_t duration = simTime() - cpuUsageStarted;
         sendBatteryConsumptionEvent(duration);
-        isCpuUsed = false;
+        backgroundServiceEndMessage = nullptr;
     }
     delete msg;
 }
@@ -64,7 +64,7 @@ void SimpleHighPowerCpu::receiveSignal(cComponent *component, simsignal_t signal
         bool b, cObject *details) {
     Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
-        if (isCpuUsed) {
+        if (backgroundServiceEndMessage != nullptr) {
             EV_INFO << "Recalc used energy for CPU usage due to regular event." << std::endl;
             simtime_t duration = simTime() - cpuUsageStarted;
             cpuUsageStarted = simTime();

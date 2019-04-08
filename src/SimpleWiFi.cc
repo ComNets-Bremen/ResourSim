@@ -78,15 +78,13 @@ DeviceStates SimpleWiFi::getDeviceState() const {
 void SimpleWiFi::handleMessage(cMessage *msg) {
 
     if (dynamic_cast<WiFiEventMessage *>(msg) != nullptr) {
+        WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
             collisionUser++;
             delete msg;
             return;
         }
-
-        WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
-
         lastUserWifiEvent = wifiMsg->getArrivalTime();
         EV_INFO << "WiFi: " << lastTrafficEvent - lastUserWifiEvent
                        << " Delta; Status: "
@@ -223,7 +221,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
     } else if (dynamic_cast<TrafficEventMessage *>(msg) != nullptr) {
         TrafficEventMessage *trafficEventMessage = check_and_cast<
                 TrafficEventMessage *>(msg);
-        EV_INFO << "TRAFFIC EVENT!!" << trafficEventMessage << std::endl;
+        EV_INFO << "TRAFFIC EVENT!!" << trafficEventMessage->str() << std::endl;
 
         lastTrafficEvent = trafficEventMessage->getArrivalTime();
 
