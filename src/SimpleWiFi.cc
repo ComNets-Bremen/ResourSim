@@ -78,6 +78,7 @@ DeviceStates SimpleWiFi::getDeviceState() const {
 void SimpleWiFi::handleMessage(cMessage *msg) {
 
     if (dynamic_cast<WiFiEventMessage *>(msg) != nullptr) {
+        // check_and_cast throws an exception if it fails.
         WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
@@ -161,7 +162,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             }
         }
         delete msg;
-    } else if (msg == backgroundServiceEndMessage) {
+    } else if (msg == backgroundServiceEndMessage && backgroundServiceEndMessage != nullptr) {
         EV_INFO << "End background service" << endl;
         simtime_t duration = simTime() - startOccupiedTime;
         // Send message to battery
@@ -171,7 +172,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 new StatisticEntry(false, msg->getArrivalTime(),
                         StatisticType::USAGE_BACKGROUND));
         delete msg;
-    } else if (msg == collectMeasurementsEvent) {
+    } else if (msg == collectMeasurementsEvent && collectMeasurementsEvent != nullptr) {
         // Handle regular statistic events
         cleanupMessagesForStats();
 
@@ -296,6 +297,10 @@ void SimpleWiFi::sendBatteryConsumptionEvent(simtime_t duration) {
 
 void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
         TrafficEventValues stop, simtime_t duration) {
+    if (duration <= 0){
+        EV_ERROR << "Duration LE 0!" << std::endl;
+        return;
+    }
     if ((simTime() - lastTrafficCalculation) > 2) {
         EV_INFO << "Mobile rx: " << stop.mobile_rx << " - " << start.mobile_rx
                        << " = " << (stop.mobile_rx - start.mobile_rx)
