@@ -13,7 +13,6 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-
 /**
  * Implements a simple phone event injector.
  *
@@ -36,7 +35,7 @@ Define_Module(PhoneEventInjector);
 
 typedef std::pair<simtime_t, BaseEventMessage*> eventPair;
 
-std::list<eventPair> eventList;
+//std::list<eventPair> eventList;
 
 bool sortEventList(const eventPair &a, const eventPair &b) {
     return a.first < b.first;
@@ -115,7 +114,8 @@ void PhoneEventInjector::initialize() {
             ScreenEventMessage *msg = new ScreenEventMessage(eventType);
             msg->setScreenOn(
                     convertToBool(value->getAttribute("screen_status")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
+            //eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "TrafficStatistics") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             TrafficEventMessage *msg = new TrafficEventMessage(eventType);
@@ -123,7 +123,8 @@ void PhoneEventInjector::initialize() {
             msg->setTotal_tx(convertToLong(value->getAttribute("total_tx")));
             msg->setMobile_rx(convertToLong(value->getAttribute("mobile_rx")));
             msg->setMobile_tx(convertToLong(value->getAttribute("mobile_tx")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
+            //eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "BatteryStatus") == 0) {
 
             //EV_INFO << "Handling " << eventType << "..." << endl;
@@ -138,32 +139,37 @@ void PhoneEventInjector::initialize() {
                     convertToBool(value->getAttribute("chg_wireless")));
             msg->setIs_charging(
                     convertToBool(value->getAttribute("is_charging")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
+            //eventList.push_back(eventPair(eventTimestamp, msg));
         } else if (strcmp(eventType, "CellularStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             CellularEventMessage *msg = new CellularEventMessage(eventType);
             msg->setCellular_type(value->getAttribute("cellular_type"));
             msg->setCellular_state(
                     convertToInt(value->getAttribute("cellular_state")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            //eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
         } else if (strcmp(eventType, "AirplaneModeStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             AirplaneModeEventMessage *msg = new AirplaneModeEventMessage();
             msg->setAirplaneModeOn(
                     convertToBool(value->getAttribute("airplane_mode")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            //eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
         } else if (strcmp(eventType, "WiFiStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             WiFiEventMessage *msg = new WiFiEventMessage(eventType);
             msg->setWifi_status(
                     convertToInt(value->getAttribute("wifi_status")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            //eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
         } else if (strcmp(eventType, "BluetoothStatus") == 0) {
             //EV_INFO << "Handling " << eventType << "..." << endl;
             BluetoothEventMessage *msg = new BluetoothEventMessage(eventType);
             msg->setBluetooth_status(
                     convertToInt(value->getAttribute("bluetooth_status")));
-            eventList.push_back(eventPair(eventTimestamp, msg));
+            //eventList.push_back(eventPair(eventTimestamp, msg));
+            scheduleAt(eventTimestamp, msg);
         } else {
             EV_ERROR << "Unhandled event type: " << eventType << endl;
             if (std::find(unhandledEvents.begin(), unhandledEvents.end(),
@@ -175,18 +181,23 @@ void PhoneEventInjector::initialize() {
     for (auto ue : unhandledEvents) {
         EV_ERROR << "Unhandled Event: " << ue << endl;
     }
-
+/*
     eventList.sort(sortEventList);
 
+    for (auto it: eventList){
+        scheduleAt(it.first, it.second);
+    }
+*/
+/*
     for (std::list<eventPair>::iterator it = eventList.begin();
             it != eventList.end(); ++it) {
         //EV_INFO << "List item " << it->first << " " << it->second << endl;
         scheduleAt(it->first, it->second);
         //delete it->second;
     }
-
+*/
     EV_INFO << allEvents.size() << " events in file" << endl;
-    EV_INFO << eventList.size() << " events in vector" << endl;
+    //EV_INFO << eventList.size() << " events in vector" << endl;
 
     EV_INFO << "Maximum timestamp: " << maxSimulationTime << endl;
 
@@ -194,7 +205,8 @@ void PhoneEventInjector::initialize() {
         cancelSimulationMessage = new cMessage("Cancel Simulation");
 
         // We end the simulation 10 seconds after the last event from the trace has been injected to the system
-        scheduleAt(maxSimulationTime + SimTime(10, SimTimeUnit::SIMTIME_S), cancelSimulationMessage);
+        scheduleAt(maxSimulationTime + SimTime(10, SimTimeUnit::SIMTIME_S),
+                cancelSimulationMessage);
     }
 
 }
