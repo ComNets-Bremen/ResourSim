@@ -96,6 +96,9 @@ void BackgroundServiceInjector::handleMessage(cMessage *msg) {
 }
 
 void BackgroundServiceInjector::finish() {
+    if (backgroundEvents.size() > 0){
+        backgroundEvents.clear();
+    }
 }
 
 } //namespace
