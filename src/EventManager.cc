@@ -131,8 +131,9 @@ void EventManager::handleMessage(cMessage *msg) {
             }
 
             if (par("analyzeUserScreenActivity").boolValue()) {
+                double correctionFactor = par("screenCorrectionFactor").doubleValue();
                 if (screenDecision.getPercentageOfValue(true)
-                        > screenDecision.getPercentageOfValue24Hrs(true)) {
+                        > (screenDecision.getPercentageOfValue24Hrs(true) * correctionFactor)) {
                     // User was using the device more often compared to the 24hrs average
                     EV_INFO << "Ignore background task: User is active!"
                                    << std::endl;

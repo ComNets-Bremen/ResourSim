@@ -36,6 +36,8 @@ simple EventManager
         volatile bool ignoreBackgroundEventsBatteryInconvenient = default(false);
         volatile bool analyzeUserScreenActivity = default(false);
         
+        volatile double screenCorrectionFactor = default(1);
+        
         // Use the average window for the decision
         volatile int decisionWindow @unit("s") = default(1800s);
     gates:
