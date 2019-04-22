@@ -53,7 +53,7 @@ protected:
 
 private:
     bool initialized = false;
-    int lastReceivedWifiStatus;
+    int lastReceivedWifiStatus = WIFI_UNKNOWN;
 
     void calcTrafficDelta(TrafficEventValues start, TrafficEventValues stop,
             simtime_t duration);
@@ -85,19 +85,24 @@ private:
     long collisionUser = 0;
     long collisionSelf = 0;
 
-    simtime_t lastTrafficEvent;
-    simtime_t lastUserWifiEvent;
-    simtime_t lastTrafficCalculation;
+    simtime_t lastTrafficEvent = 0;
+    simtime_t lastUserWifiEvent = 0;
+    simtime_t lastTrafficCalculation = 0;
 
-    TrafficEventValues lastTrafficValues;
-    TrafficEventValues trafficWifiStartValues;
+    long mobile_rx = 0;
+    long mobile_tx = 0;
+    long total_rx = 0;
+    long total_tx = 0;
+
+    TrafficEventValues lastTrafficValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0};
+    TrafficEventValues trafficWifiStartValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0};
 
     DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 
-    simtime_t startOccupiedTime;
+    simtime_t startOccupiedTime = 0;
 
-    cMessage *collectMeasurementsEvent;
-    cMessage *backgroundServiceEndMessage;
+    cMessage *collectMeasurementsEvent = nullptr;
+    cMessage *backgroundServiceEndMessage = nullptr;
 };
 
 } //namespace
