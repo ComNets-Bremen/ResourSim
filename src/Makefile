@@ -46,6 +46,7 @@ OBJS = \
     $O/SimpleWiFi.o \
     $O/SlidingDataset.o \
     $O/StatisticEntry.o \
+    $O/background_messages/BackgroundEventEndMessage_m.o \
     $O/background_messages/BackgroundEventMessage_m.o \
     $O/capacity_messages/CapacityEvent_m.o \
     $O/event_messages/AirplaneModeEventMessage_m.o \
@@ -60,6 +61,7 @@ OBJS = \
 
 # Message files
 MSGFILES = \
+    background_messages/BackgroundEventEndMessage.msg \
     background_messages/BackgroundEventMessage.msg \
     capacity_messages/CapacityEvent.msg \
     event_messages/AirplaneModeEventMessage.msg \
@@ -142,7 +144,7 @@ $O/%.o: %.cc $(COPTS_FILE) | msgheaders smheaders
 
 %_m.cc %_m.h: %.msg
 	$(qecho) MSGC: $<
-	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $@).d $(MSGCOPTS) $?
+	$(Q)$(MSGC) -s _m.cc -MD -MP -MF $O/$(basename $<)_m.h.d $(MSGCOPTS) $?
 
 %_sm.cc %_sm.h: %.sm
 	$(qecho) SMC: $<
@@ -165,4 +167,4 @@ cleanall:
 	$(Q)-rm -rf $(PROJECT_OUTPUT_DIR)
 
 # include all dependencies
--include $(OBJS:%.o=%.d)
+-include $(OBJS:%=%.d) $(MSGFILES:%.msg=$O/%_m.h.d)

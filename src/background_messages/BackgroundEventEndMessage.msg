@@ -19,12 +19,7 @@ cplusplus {{
 #include "BackgroundTypeDefinitions.h"
 }};
 
-enum BackgroundEventType;
 
-packet BackgroundEventMessage {
-    simtime_t startTime;
-    simtime_t duration;
-    int backgroundType @enum(BackgroundEventType);
-    backgroundType=BACKGROUND_EVENT_TYPE_UNKNOWN;
+packet BackgroundEventEndMessage {
     bool backgroundEventCancelled = false;
 }

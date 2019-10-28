@@ -13,6 +13,7 @@
 
 #include "BackgroundTypeDefinitions.h"
 #include "BackgroundEventMessage_m.h"
+#include "BackgroundEventEndMessage_m.h"
 
 
 #endif /* BACKGROUND_MESSAGES_BACKGROUNDMESSAGES_H_ */

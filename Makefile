@@ -46,6 +46,7 @@ OBJS = \
     $O/src/SimpleWiFi.o \
     $O/src/SlidingDataset.o \
     $O/src/StatisticEntry.o \
+    $O/src/background_messages/BackgroundEventEndMessage_m.o \
     $O/src/background_messages/BackgroundEventMessage_m.o \
     $O/src/capacity_messages/CapacityEvent_m.o \
     $O/src/event_messages/AirplaneModeEventMessage_m.o \
@@ -60,6 +61,7 @@ OBJS = \
 
 # Message files
 MSGFILES = \
+    src/background_messages/BackgroundEventEndMessage.msg \
     src/background_messages/BackgroundEventMessage.msg \
     src/capacity_messages/CapacityEvent.msg \
     src/event_messages/AirplaneModeEventMessage.msg \
