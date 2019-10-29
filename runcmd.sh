@@ -4,6 +4,12 @@
 # the output to a logfile
 
 #SIMTYPE="BucketBattery-WiFi-CPU-Background"
-SIMTYPE="UserOptimizationUser1"
+SIMTYPE="AllUserSims"
+#SIMTYPE="WindowOptimization"
+#SIMTYPE="TestUser1"
 cd simulations
-../Resoursim -m -u Cmdenv -c $SIMTYPE -n .:../src --image-path=../images omnetpp.ini
+#../Resoursim -m -u Cmdenv -c $SIMTYPE -n .:../src --image-path=../images omnetpp.ini
+
+opp_runall -j 2 ../Resoursim -m -u Cmdenv -c $SIMTYPE -n .:../src --image-path=../images omnetpp.ini
+
+
