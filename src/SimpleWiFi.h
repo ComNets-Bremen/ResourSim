@@ -81,9 +81,10 @@ private:
 //    cHistogram totalRxKbHist;
 //    cHistogram totalTxKbHist;
 
-    long collisionBackground = 0;
-    long collisionUser = 0;
-    long collisionSelf = 0;
+    long occupiedUserCollisionBackground = 0;
+    long occupiedBackgroundCollisionUser = 0;
+    long occupiedBackgroundCollisionBackground = 0;
+    long cancelledBackgroundOccupiedUser = 0;
 
     simtime_t lastTrafficEvent = 0;
     simtime_t lastUserWifiEvent = 0;
@@ -102,7 +103,6 @@ private:
     simtime_t startOccupiedTime = 0;
 
     cMessage *collectMeasurementsEvent = nullptr;
-    cMessage *backgroundServiceEndMessage = nullptr;
 };
 
 } //namespace

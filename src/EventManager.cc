@@ -117,34 +117,35 @@ void EventManager::handleMessage(cMessage *msg) {
         numberBackgroundEvents++;
 
         if (par("enableBackgroundOptimizations").boolValue()) {
-            // Do not sent messages if battery is weak
+            backgroundEventMessage->setBackgroundEventCancelled(false);
 
+            // Do not send messages if battery is weak
             if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
                     && isDeviceCritical) {
                 EV_INFO
                                << "Ignoring background message: Device in inconvenient mode"
                                << std::endl;
-                delete msg;
+
+                backgroundEventMessage->setBackgroundEventCancelled(true);
+
                 numberCancelledBackgroundEvents++;
                 cancelEventTimes.record(1);
-                return;
-            }
-
-            if (par("analyzeUserScreenActivity").boolValue()) {
+            } /* Battery check */ else if (par("analyzeUserScreenActivity").boolValue()) {
                 double correctionFactor = par("screenCorrectionFactor").doubleValue();
                 if (screenDecision.getPercentageOfValue(true)
                         > (screenDecision.getPercentageOfValue24Hrs(true) * correctionFactor)) {
                     // User was using the device more often compared to the 24hrs average
                     EV_INFO << "Ignore background task: User is active!"
                                    << std::endl;
-                    delete msg;
+
+                    backgroundEventMessage->setBackgroundEventCancelled(true);
                     numberCancelledBackgroundEvents++;
                     cancelEventTimes.record(1);
-                    return;
-                }
-            }
-            cancelEventTimes.record(0);
-        }
+                } // Drop message
+            } // Analyze screen activity
+            if (!backgroundEventMessage->getBackgroundEventCancelled())
+                cancelEventTimes.record(0);
+        } // Enable optimizations
 
         // Forward to all nodes
         for (int i = 0; i < gateSize("out"); i++)
@@ -159,7 +160,7 @@ void EventManager::handleMessage(cMessage *msg) {
         scheduleAt(simTime() + par("sendBatteryCollectSignalEvent").intValue(),
                 msg);
     } else if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
-        // Phone events
+        // Phone / user events
 
         BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
         if (message == nullptr) {
@@ -204,6 +205,8 @@ void EventManager::handleMessage(cMessage *msg) {
         for (int i = 0; i < gateSize("out"); i++)
             send(msg->dup(), "out", i);
         delete msg;
+
+        // TODO: Throw exception?
     }
 }
 

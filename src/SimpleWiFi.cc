@@ -21,8 +21,6 @@ Define_Module(SimpleWiFi);
 
 SimpleWiFi::SimpleWiFi() {
     collectMeasurementsEvent = nullptr;
-    backgroundServiceEndMessage = nullptr;
-
 }
 
 SimpleWiFi::~SimpleWiFi() {
@@ -59,10 +57,14 @@ void SimpleWiFi::initialize() {
 
 void SimpleWiFi::receiveSignal(cComponent *component, simsignal_t signal,
         bool b, cObject *details) {
-    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    Enter_Method
+    (
+            "receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
-        if (deviceState == DEVICE_STATE_OCCUPIED_USER || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
-            EV_INFO << "Recalc used energy for WiFi due to regular event." << std::endl;
+        if (deviceState == DEVICE_STATE_OCCUPIED_USER
+                || deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
+            EV_INFO << "Recalc used energy for WiFi due to regular event."
+                           << std::endl;
             simtime_t duration = simTime() - startOccupiedTime;
             startOccupiedTime = simTime();
             sendBatteryConsumptionEvent(duration);
@@ -80,11 +82,41 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
     if (dynamic_cast<WiFiEventMessage *>(msg) != nullptr) {
         // check_and_cast throws an exception if it fails.
         WiFiEventMessage *wifiMsg = check_and_cast<WiFiEventMessage *>(msg);
+
+        // User event
+
+        EV_INFO << "USER EVENT: ";
+        switch (deviceState) {
+        case DEVICE_STATE_UNKNOWN:
+            EV_INFO << "UNKNOWN";
+            break;
+        case DEVICE_STATE_OCCUPIED_USER:
+            EV_INFO << "OCC_USER";
+            break;
+        case DEVICE_STATE_OCCUPIED_BACKGROUND:
+            EV_INFO << "OCC_BG";
+            break;
+        case DEVICE_STATE_CANCELLED_BACKGROUND:
+            EV_INFO << "CANCEL_BG";
+            break;
+        case DEVICE_STATE_FREE:
+            EV_INFO << "FREE";
+            break;
+        default:
+            EV_INFO << "UNDEFINED";
+
+        }
+        EV_INFO << std::endl;
+
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
-            collisionUser++;
+            occupiedBackgroundCollisionUser++;
             delete msg;
             return;
+        }
+
+        if (deviceState == DEVICE_STATE_CANCELLED_BACKGROUND) {
+            cancelledBackgroundOccupiedUser++;
         }
         lastUserWifiEvent = wifiMsg->getArrivalTime();
         EV_INFO << "WiFi: " << lastTrafficEvent - lastUserWifiEvent
@@ -142,37 +174,68 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 BackgroundEventMessage *>(msg);
         if (backgroundEventMessage->getBackgroundType()
                 == BACKGROUND_EVENT_TYPE_WIFI) {
-            if ((deviceState == DEVICE_STATE_FREE)
-                    or (deviceState == DEVICE_STATE_UNKNOWN)) {
-                deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
-                startOccupiedTime = simTime();
 
-                backgroundServiceEndMessage = new cMessage(
-                        "End Background Service");
+            EV_INFO << "WIFI BG MSG" << std::endl;
+
+            BackgroundEventEndMessage *endMessage =
+                    new BackgroundEventEndMessage();
+            endMessage->setBackgroundEventCancelled(
+                    backgroundEventMessage->getBackgroundEventCancelled());
+
+            if (!backgroundEventMessage->getBackgroundEventCancelled()) {
+                // Not cancelled job
+                if ((deviceState == DEVICE_STATE_FREE)
+                        or (deviceState == DEVICE_STATE_UNKNOWN)) {
+                    deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+                    startOccupiedTime = simTime();
+                    addMessageForUserStats(
+                            new StatisticEntry(true, msg->getArrivalTime(),
+                                    StatisticType::USAGE_BACKGROUND));
+                } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
+                    EV_INFO << "self collision" << endl;
+                    occupiedBackgroundCollisionBackground++;
+                } else {
+                    // Occupied user
+                    occupiedUserCollisionBackground++;
+                }
+
+            } else /* cancelled event */ {
+                if ((deviceState == DEVICE_STATE_FREE) or (deviceState == DEVICE_STATE_UNKNOWN)){
+                    EV_INFO << "CANCELLED EVENT" << std::endl;
+                    deviceState = DEVICE_STATE_CANCELLED_BACKGROUND;
+                }
+            }
+
+            if (endMessage != nullptr) {
                 scheduleAt(simTime() + backgroundEventMessage->getDuration(),
-                        backgroundServiceEndMessage);
-                addMessageForUserStats(
-                        new StatisticEntry(true, msg->getArrivalTime(),
-                                StatisticType::USAGE_BACKGROUND));
-            } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
-                EV_INFO << "self collision" << endl;
-                collisionSelf++;
-            } else {
-                collisionBackground++;
+                        endMessage);
             }
         }
         delete msg;
-    } else if (msg == backgroundServiceEndMessage && backgroundServiceEndMessage != nullptr) {
+    } else if (dynamic_cast<BackgroundEventEndMessage *>(msg) != nullptr) {
         EV_INFO << "End background service" << endl;
-        simtime_t duration = simTime() - startOccupiedTime;
-        // Send message to battery
-        sendBatteryConsumptionEvent(duration);
-        deviceState = DEVICE_STATE_FREE;
-        addMessageForUserStats(
-                new StatisticEntry(false, msg->getArrivalTime(),
-                        StatisticType::USAGE_BACKGROUND));
+        BackgroundEventEndMessage *endMessage =
+                dynamic_cast<BackgroundEventEndMessage *>(msg);
+        if (endMessage->getBackgroundEventCancelled()) {
+            //cancelled
+
+            /*
+             * State could be overwritten by a user event
+             */
+            if (deviceState == DEVICE_STATE_CANCELLED_BACKGROUND)
+                deviceState = DEVICE_STATE_FREE;
+        } else {
+            simtime_t duration = simTime() - startOccupiedTime;
+            // Send message to battery
+            sendBatteryConsumptionEvent(duration);
+            deviceState = DEVICE_STATE_FREE;
+            addMessageForUserStats(
+                    new StatisticEntry(false, msg->getArrivalTime(),
+                            StatisticType::USAGE_BACKGROUND));
+        }
         delete msg;
-    } else if (msg == collectMeasurementsEvent && collectMeasurementsEvent != nullptr) {
+    } else if (msg == collectMeasurementsEvent
+            && collectMeasurementsEvent != nullptr) {
         // Handle regular statistic events
         cleanupMessagesForStats();
 
@@ -208,6 +271,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             wifiDeviceState.record(1);
             break;
         case DEVICE_STATE_FREE:
+        case DEVICE_STATE_CANCELLED_BACKGROUND:
             wifiDeviceState.record(0);
             break;
         default:
@@ -262,9 +326,14 @@ void SimpleWiFi::refreshDisplay() const {
 }
 
 void SimpleWiFi::finish() {
-    recordScalar("#collisionUser", collisionUser);
-    recordScalar("#collisionBackground", collisionBackground);
-    recordScalar("#collisionSelf", collisionSelf);
+    recordScalar("#occupiedBackgroundCollisionUser",
+            occupiedBackgroundCollisionUser);
+    recordScalar("#occupiedUserCollisionBackground",
+            occupiedUserCollisionBackground);
+    recordScalar("#occupiedBackgroundCollisionBackground",
+            occupiedBackgroundCollisionBackground);
+    recordScalar("#cancelledBackgroundOccupiedUser",
+            cancelledBackgroundOccupiedUser);
 
     recordScalar("#txNeglectable", trafficTxNeglectable);
     recordScalar("#rxNeglectable", trafficRxNeglectable);
@@ -297,7 +366,7 @@ void SimpleWiFi::sendBatteryConsumptionEvent(simtime_t duration) {
 
 void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
         TrafficEventValues stop, simtime_t duration) {
-    if (duration <= 0){
+    if (duration <= 0) {
         EV_ERROR << "Duration LE 0!" << std::endl;
         return;
     }
