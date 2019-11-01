@@ -34,7 +34,10 @@ cplusplus {{
             {BLUETOOTH_STATE_TURNING_ON, "BLUETOOTH_STATE_TURNING_ON"},
             {BLUETOOTH_STATE_TURNING_OFF, "BLUETOOTH_STATE_TURNING_OFF"},
             };
-        return BluetoothStatusCodeMap[code];
+            if (BluetoothStatusCodeMap.count(code))
+            	return BluetoothStatusCodeMap[code];
+            else
+            	return "UNKNOWN";
     }
     
     // Return the Bluetooth status as a string from an int
