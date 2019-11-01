@@ -26,8 +26,6 @@ SimpleHighPowerCpu::~SimpleHighPowerCpu() {
                 this);
 }
 
-
-
 void SimpleHighPowerCpu::initialize() {
     EV_INFO << "init CPU" << std::endl;
 
@@ -37,17 +35,21 @@ void SimpleHighPowerCpu::initialize() {
 }
 
 void SimpleHighPowerCpu::handleMessage(cMessage *msg) {
-    if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr){
-        BackgroundEventMessage *backgroundEventMessage = check_and_cast<BackgroundEventMessage *>(msg);
+    if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
+                BackgroundEventMessage *>(msg);
 
-        if (backgroundEventMessage->getBackgroundType() == BACKGROUND_EVENT_TYPE_CPU && backgroundServiceEndMessage != nullptr){
+        if (backgroundEventMessage->getBackgroundType()
+                == BACKGROUND_EVENT_TYPE_CPU
+                && backgroundServiceEndMessage != nullptr) {
             EV_INFO << "High power CPU usage started" << std::endl;
             simtime_t duration = backgroundEventMessage->getDuration();
             cpuUsageStarted = simTime();
-            backgroundServiceEndMessage = new cMessage("End Background Service");
+            backgroundServiceEndMessage = new cMessage(
+                    "End Background Service");
             scheduleAt(simTime() + duration, backgroundServiceEndMessage);
         }
-    } else if (backgroundServiceEndMessage == msg){
+    } else if (backgroundServiceEndMessage == msg) {
         EV_INFO << "High power CPU usage finished" << std::endl;
         simtime_t duration = simTime() - cpuUsageStarted;
         sendBatteryConsumptionEvent(duration);
@@ -58,10 +60,9 @@ void SimpleHighPowerCpu::handleMessage(cMessage *msg) {
 
 void SimpleHighPowerCpu::refreshDisplay() const {
     std::string msgString;
-        msgString = "High Power CPU: ";
+    msgString = "High Power CPU: ";
 
-
-    if (backgroundServiceEndMessage != nullptr){
+    if (backgroundServiceEndMessage != nullptr) {
         getDisplayString().setTagArg("i", 0, "status/cpu_red");
         msgString += "in use";
     } else {
@@ -71,12 +72,15 @@ void SimpleHighPowerCpu::refreshDisplay() const {
     getDisplayString().setTagArg("t", 0, msgString.c_str());
 }
 
-void SimpleHighPowerCpu::receiveSignal(cComponent *component, simsignal_t signal,
-        bool b, cObject *details) {
-    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+void SimpleHighPowerCpu::receiveSignal(cComponent *component,
+        simsignal_t signal, bool b, cObject *details) {
+    Enter_Method
+    (
+            "receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
         if (backgroundServiceEndMessage != nullptr) {
-            EV_INFO << "Recalc used energy for CPU usage due to regular event." << std::endl;
+            EV_INFO << "Recalc used energy for CPU usage due to regular event."
+                           << std::endl;
             simtime_t duration = simTime() - cpuUsageStarted;
             cpuUsageStarted = simTime();
             sendBatteryConsumptionEvent(duration);
@@ -90,10 +94,13 @@ void SimpleHighPowerCpu::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_CPU);
     double chargeChange = -1 * par("cpuCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)" << std::endl;
+    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+                   << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
 
-    if (gateSize("out") < 1) throw cRuntimeError("Invalid number of output gates: %d; must be >=1", gateSize("out"));
+    if (gateSize("out") < 1)
+        throw cRuntimeError("Invalid number of output gates: %d; must be >=1",
+                gateSize("out"));
 
     for (int i = 0; i < gateSize("out"); i++)
         send(cEvent->dup(), "out", i);
