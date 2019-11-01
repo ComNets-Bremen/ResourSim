@@ -85,29 +85,6 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
         // User event
 
-        EV_INFO << "USER EVENT: ";
-        switch (deviceState) {
-        case DEVICE_STATE_UNKNOWN:
-            EV_INFO << "UNKNOWN";
-            break;
-        case DEVICE_STATE_OCCUPIED_USER:
-            EV_INFO << "OCC_USER";
-            break;
-        case DEVICE_STATE_OCCUPIED_BACKGROUND:
-            EV_INFO << "OCC_BG";
-            break;
-        case DEVICE_STATE_CANCELLED_BACKGROUND:
-            EV_INFO << "CANCEL_BG";
-            break;
-        case DEVICE_STATE_FREE:
-            EV_INFO << "FREE";
-            break;
-        default:
-            EV_INFO << "UNDEFINED";
-
-        }
-        EV_INFO << std::endl;
-
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
             occupiedBackgroundCollisionUser++;
@@ -115,7 +92,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             return;
         }
 
-        if (deviceState == DEVICE_STATE_CANCELLED_BACKGROUND) {
+        if (inCancelledBgState) {
             cancelledBackgroundOccupiedUser++;
         }
         lastUserWifiEvent = wifiMsg->getArrivalTime();
@@ -170,19 +147,17 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         //EV_INFO << "Background Message" << endl;
-        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
-                BackgroundEventMessage *>(msg);
-        if (backgroundEventMessage->getBackgroundType()
-                == BACKGROUND_EVENT_TYPE_WIFI) {
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<BackgroundEventMessage *>(msg);
+        if (backgroundEventMessage->getBackgroundType() == BACKGROUND_EVENT_TYPE_WIFI) {
 
             EV_INFO << "WIFI BG MSG" << std::endl;
 
-            BackgroundEventEndMessage *endMessage =
-                    new BackgroundEventEndMessage();
-            endMessage->setBackgroundEventCancelled(
-                    backgroundEventMessage->getBackgroundEventCancelled());
+            BackgroundEventEndMessage *endMessage = new BackgroundEventEndMessage();
+            endMessage->setBackgroundEventCancelled(backgroundEventMessage->getBackgroundEventCancelled());
 
-            if (!backgroundEventMessage->getBackgroundEventCancelled()) {
+            if (backgroundEventMessage->getBackgroundEventCancelled()) {
+                inCancelledBgState = true;
+            } else {
                 // Not cancelled job
                 if ((deviceState == DEVICE_STATE_FREE)
                         or (deviceState == DEVICE_STATE_UNKNOWN)) {
@@ -199,18 +174,13 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                     occupiedUserCollisionBackground++;
                 }
 
-            } else /* cancelled event */ {
-                if ((deviceState == DEVICE_STATE_FREE) or (deviceState == DEVICE_STATE_UNKNOWN)){
-                    EV_INFO << "CANCELLED EVENT" << std::endl;
-                    deviceState = DEVICE_STATE_CANCELLED_BACKGROUND;
-                }
-            }
-
+            } // cancelled / not cancelled event
             if (endMessage != nullptr) {
-                scheduleAt(simTime() + backgroundEventMessage->getDuration(),
-                        endMessage);
-            }
-        }
+                scheduleAt(simTime() + backgroundEventMessage->getDuration(),endMessage);
+            } // tx bg event end msg
+
+        } // BG Event type WiFi
+
         delete msg;
     } else if (dynamic_cast<BackgroundEventEndMessage *>(msg) != nullptr) {
         EV_INFO << "End background service" << endl;
@@ -218,12 +188,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 dynamic_cast<BackgroundEventEndMessage *>(msg);
         if (endMessage->getBackgroundEventCancelled()) {
             //cancelled
-
-            /*
-             * State could be overwritten by a user event
-             */
-            if (deviceState == DEVICE_STATE_CANCELLED_BACKGROUND)
-                deviceState = DEVICE_STATE_FREE;
+            inCancelledBgState = false;
         } else {
             simtime_t duration = simTime() - startOccupiedTime;
             // Send message to battery
@@ -271,7 +236,6 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             wifiDeviceState.record(1);
             break;
         case DEVICE_STATE_FREE:
-        case DEVICE_STATE_CANCELLED_BACKGROUND:
             wifiDeviceState.record(0);
             break;
         default:
@@ -340,9 +304,9 @@ void SimpleWiFi::finish() {
     recordScalar("#txTotal", trafficTxTotal);
     recordScalar("#rxTotal", trafficRxTotal);
 
-    // recordAs sets up the bins. Conflict with the manual bin setup!
-    //totalTxKbHist.recordAs("TxKbHist");
-    //totalTxKbHist.recordAs("RxKbHist");
+// recordAs sets up the bins. Conflict with the manual bin setup!
+//totalTxKbHist.recordAs("TxKbHist");
+//totalTxKbHist.recordAs("RxKbHist");
 
 }
 

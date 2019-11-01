@@ -29,46 +29,56 @@ Define_Module(EventManager);
 
 void EventManager::initialize() {
     EV_INFO << "Started" << endl;
-    isDeviceCritical = false;
-    isDeviceDead = false;
+    isDeviceCritical = false;   // Battery level is under a certain threshold
+    isDeviceDead = false;       // Battery is dead
 
+    // Recalculate battery level regularly
     sendSignal_calculateBatteryDiffsEvent = new cMessage(
     CALCULATE_BATTERY_DIFFS);
     scheduleAt(0, sendSignal_calculateBatteryDiffsEvent);
 
+    // Collect measurements for the decisions
     collectDecisionDatasetsEvent = new cMessage("collectDecisionMeasurements");
     scheduleAt(0, collectDecisionDatasetsEvent);
 
+    // Signal to initiate battery recalculations
     batteryRecalcId = registerSignal(CALCULATE_BATTERY_DIFFS);
 
+    // Receive Battery percentage changed signals
     getSimulation()->getSystemModule()->subscribe(BATTERY_PERCENTAGE_SIGNAL,
             this);
 
+    // Receive Battery inconvinient signals
     getSimulation()->getSystemModule()->subscribe(BATTERY_INCONVENIENT_SIGNAL,
             this);
 
+    // Receive WiFi status changed signals
     getSimulation()->getSystemModule()->subscribe(WIFI_STATUS_UPDATE_SIGNAL,
             this);
 
+    // Receive screen status changed signals
     getSimulation()->getSystemModule()->subscribe(SCREEN_STATUS_UPDATE_SIGNAL,
             this);
 
+    // Set decision window for screen status
     screenDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
+
+    // Set decision window for wifi status
     wifiDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
 
+    // Set stats names
     screenDecisionStats.setName("ScreenStats");
     screenDecisionStats24hrs.setName("ScreenStats24hrs");
 
     wifiDecisionStatsUser.setName("WifiStatsUser");
     wifiDecisionStatsUser24hrs.setName("WifiStatsUser24hrs");
 
-    cancelEventTimes.setName("CancelEvent");
-
     numberBackgroundEvents = 0;
     numberCancelledBackgroundEvents = 0;
 }
 
 EventManager::~EventManager() {
+    // Unregister signals
     if (getSimulation()->getSystemModule()->isSubscribed(
     BATTERY_PERCENTAGE_SIGNAL, this))
         getSimulation()->getSystemModule()->unsubscribe(
@@ -89,6 +99,7 @@ EventManager::~EventManager() {
         getSimulation()->getSystemModule()->unsubscribe(
         SCREEN_STATUS_UPDATE_SIGNAL, this);
 
+    // Cancel already scheduled events
     cancelAndDelete(sendSignal_calculateBatteryDiffsEvent);
     cancelAndDelete(collectDecisionDatasetsEvent);
 }
@@ -97,6 +108,10 @@ void EventManager::handleMessage(cMessage *msg) {
     // Device dead: Only charging messages can pass
     if (par("stopForwardingDeviceDead").boolValue() && isDeviceDead
             && dynamic_cast<BatteryEventMessage *>(msg) == nullptr) {
+        // Do not forward message if
+        // - Setup via config
+        // - device is in dead status (battery empty)
+        // - This is not a battery message (charging?)
         delete msg;
         return;
     }
@@ -129,22 +144,20 @@ void EventManager::handleMessage(cMessage *msg) {
                 backgroundEventMessage->setBackgroundEventCancelled(true);
 
                 numberCancelledBackgroundEvents++;
-                cancelEventTimes.record(1);
-            } /* Battery check */ else if (par("analyzeUserScreenActivity").boolValue()) {
-                double correctionFactor = par("screenCorrectionFactor").doubleValue();
+            } else if (par("analyzeUserScreenActivity").boolValue()) {
+                double correctionFactor =
+                        par("screenCorrectionFactor").doubleValue();
                 if (screenDecision.getPercentageOfValue(true)
-                        > (screenDecision.getPercentageOfValue24Hrs(true) * correctionFactor)) {
+                        > (screenDecision.getPercentageOfValue24Hrs(true)
+                                * correctionFactor)) {
                     // User was using the device more often compared to the 24hrs average
                     EV_INFO << "Ignore background task: User is active!"
                                    << std::endl;
 
                     backgroundEventMessage->setBackgroundEventCancelled(true);
                     numberCancelledBackgroundEvents++;
-                    cancelEventTimes.record(1);
                 } // Drop message
             } // Analyze screen activity
-            if (!backgroundEventMessage->getBackgroundEventCancelled())
-                cancelEventTimes.record(0);
         } // Enable optimizations
 
         // Forward to all nodes
@@ -219,9 +232,12 @@ void EventManager::refreshDisplay() const {
         getDisplayString().setTagArg("i", 0, "status/status_okay");
 }
 
+/**
+ * Signal receiver: Type bool
+ */
 void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
         cObject *details) {
-    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)) {
+    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)){
         EV_INFO << "DEVICE inconvenient" << std::endl;
         isDeviceCritical = b;
     } else if (signal == registerSignal(SCREEN_STATUS_UPDATE_SIGNAL)) {
@@ -230,6 +246,8 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
                        << " Screen was occupied by user: "
                        << screenDecision.getPercentageOfValue(true)
                        << std::endl;
+    } else {
+        EV_ERROR << "Received unhandled signal!" << std::endl;
     }
 }
 

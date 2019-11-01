@@ -78,8 +78,6 @@ private:
     cOutVector wifiDecisionStatsUser;
     cOutVector wifiDecisionStatsUser24hrs;
 
-    cOutVector cancelEventTimes;
-
     long numberBackgroundEvents;
     long numberCancelledBackgroundEvents;
 };

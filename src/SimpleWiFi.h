@@ -100,6 +100,8 @@ private:
 
     DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 
+    bool inCancelledBgState = false;
+
     simtime_t startOccupiedTime = 0;
 
     cMessage *collectMeasurementsEvent = nullptr;
