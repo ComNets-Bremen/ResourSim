@@ -133,9 +133,13 @@ void SimpleScreen::handleMessage(cMessage *msg) {
 }
 
 void SimpleScreen::refreshDisplay() const {
-    char buf[40];
-    sprintf(buf, "Screen on: %i", screenOn);
-    getDisplayString().setTagArg("t", 0, buf);
+    std::string msgString;
+
+    if (screenOn)
+        msgString = "Screen on";
+    else
+        msgString = "Screen off";
+    getDisplayString().setTagArg("t", 0, msgString.c_str());
 
     if (screenOn)
         getDisplayString().setTagArg("i", 0, "status/screen_on");
