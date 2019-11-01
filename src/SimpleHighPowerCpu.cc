@@ -57,7 +57,18 @@ void SimpleHighPowerCpu::handleMessage(cMessage *msg) {
 }
 
 void SimpleHighPowerCpu::refreshDisplay() const {
-    // TODO
+    std::string msgString;
+        msgString = "High Power CPU: ";
+
+
+    if (backgroundServiceEndMessage != nullptr){
+        getDisplayString().setTagArg("i", 0, "status/cpu_red");
+        msgString += "in use";
+    } else {
+        getDisplayString().setTagArg("i", 0, "status/cpu_grey");
+        msgString += "not in use";
+    }
+    getDisplayString().setTagArg("t", 0, msgString.c_str());
 }
 
 void SimpleHighPowerCpu::receiveSignal(cComponent *component, simsignal_t signal,
