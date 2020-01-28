@@ -98,8 +98,10 @@ void BucketBattery::handleMessage(cMessage *msg) {
     } else if (dynamic_cast<CapacityEvent *>(msg) != nullptr) {
         EV_INFO << "Recalc battery stat start: " << batteryCharge << std::endl;
         CapacityEvent *cEvent = dynamic_cast<CapacityEvent *>(msg);
-        EV_INFO << "Changing capacity by " << cEvent->getChargeChange() << "C"
+        EV_INFO << "Changing capacity by " << cEvent->getChargeChange() << "C in " << cEvent->getDischargeDuration() << "s " << cEvent->getSenderModule()
                        << std::endl;
+
+
         batteryCharge += cEvent->getChargeChange();
         recalculateBatteryCharge();
         delete cEvent;
@@ -138,7 +140,7 @@ void BucketBattery::recalculateBatteryCharge() {
                 * par("batteryDischargeCoulombPerHour").doubleValue() / 60.0
                 / 60.0;
 
-    EV_INFO << "Regular (dis)charge: " << coulomb << "C" << std::endl;
+    EV_INFO << "Regular (dis)charge: " << coulomb << "C in " << duration << " seconds" << std::endl;
 
     batteryCharge += coulomb;
     batteryCharge = std::fmin(batteryCharge, par("batteryCapacityCoulomb")); // Bucket model cannot be fuller than full
