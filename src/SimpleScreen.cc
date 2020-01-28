@@ -152,9 +152,10 @@ void SimpleScreen::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_SCREEN);
     double chargeChange = -1 * par("screenCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+    EV_INFO << "Screen used " << chargeChange << "C (As) (" << duration << "s)"
                    << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
+    cEvent->setDischargeDuration(duration);
 
     if (gateSize("out") < 1)
         throw cRuntimeError("Invalid number of output gates: %d; must be >=1",

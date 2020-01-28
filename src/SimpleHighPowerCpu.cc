@@ -94,9 +94,11 @@ void SimpleHighPowerCpu::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_CPU);
     double chargeChange = -1 * par("cpuCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+    EV_INFO << "CPU used " << chargeChange << "C (As) (" << duration << "s)"
                    << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
+    cEvent->setDischargeDuration(duration);
+
 
     if (gateSize("out") < 1)
         throw cRuntimeError("Invalid number of output gates: %d; must be >=1",
