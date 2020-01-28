@@ -59,6 +59,7 @@ private:
             simtime_t duration);
 
     DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
+    DeviceStates asyncDeviceState = DEVICE_STATE_UNKNOWN;
 
     long trafficTxNeglectable = 0;
     long trafficRxNeglectable = 0;
@@ -71,6 +72,7 @@ private:
     cOutVector wifiStatusOn;
     cOutVector wifiStatusOff;
     cOutVector wifiDeviceState;
+    cOutVector wifiAsyncDeviceState;
 
     cOutVector txBitPerSecond;
     cOutVector RxBitPerSecond;
@@ -80,11 +82,42 @@ private:
 
 //    cHistogram totalRxKbHist;
 //    cHistogram totalTxKbHist;
+    /*
+     * --------------------------------------------------
+     * running / start  |     user      |  Background   |
+     *------------------|---------------|---------------|
+     *                  |               |unwanted should|
+     * user             | won't happen  |not happen,    |
+     *                  |               |prevented      |
+     * -----------------|---------------|---------------|
+     *                  |               |               |
+     * background       | prediction    | self collision|
+     *                  | prevent       | acceptable    |
+     *---------------------------------------------------
+     *                  |               |               |
+     * free             |   okay        |   okay        |
+     * (also bg cancel) |               |               |
+     *---------------------------------------------------
+     *
+     * In case of free for new tasks: check if free or cancelled bg:
+     * 
+     * Ideally #cancelled bg events == #user events in case of cancelled events
+     * 
+     * 
+     * Optimize:
+     * - # of cancelled bg events low
+     * - # of user collisions (bg running, user requesting) low
+     * - # of user events in case of cancelled bg event high
+     * 
+     */
 
-    long occupiedUserCollisionBackground = 0;
-    long occupiedBackgroundCollisionUser = 0;
-    long occupiedBackgroundCollisionBackground = 0;
-    long cancelledBackgroundOccupiedUser = 0;
+    long occupiedUserStartBackground = 0;       // User is using the device and a background should be started
+    long occupiedBackgroundStartUser = 0;       // A background task is running and the user accesses the device
+    long occupiedBackgroundStartBackground = 0; // A background task is running and a second background task is started (self collision)
+    long cancelledBackgroundOccupiedUser = 0;   // Background service was cancelled and user is now using the device.   
+    long bgCancelledUserActivePeriods = 0;      // Background service was cancelled and the user was using the device in this period
+    
+    long bgCancelledAndUserActiveInPeriod = 0;  // Number of collisions with cancelled bg events by user in this period
 
     simtime_t lastTrafficEvent = 0;
     simtime_t lastUserWifiEvent = 0;
@@ -101,6 +134,8 @@ private:
     DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 
     bool inCancelledBgState = false;
+
+    
 
     simtime_t startOccupiedTime = 0;
 

@@ -38,6 +38,7 @@ void SimpleWiFi::initialize() {
     wifiStatusOn.setName("WiFi on (Window)");
     wifiStatusOff.setName("WiFi off (Window)");
     wifiDeviceState.setName("Simple WiFi device State");
+    wifiAsyncDeviceState.setName("Async WiFi device State");
 
     txBitPerSecond.setName("WiFi bps TX");
     RxBitPerSecond.setName("WiFi bps RX");
@@ -87,7 +88,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
         if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
             EV_INFO << "Collision Background" << endl;
-            occupiedBackgroundCollisionUser++;
+            occupiedBackgroundStartUser++;
             delete msg;
             return;
         }
@@ -118,12 +119,15 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
             // state change
             if (getWiFiIsOccupied(wifiMsg->getWifi_status())) {
                 deviceState = DEVICE_STATE_OCCUPIED_USER;
+                wifiAsyncDeviceState.record(2);
                 startOccupiedTime = simTime();
                 trafficWifiStartValues = lastTrafficValues;
+
                 EV_INFO << "Traffic should be 1st" << std::endl;
             } else {
                 EV_INFO << "State: Free" << std::endl;
                 deviceState = DEVICE_STATE_FREE;
+                wifiAsyncDeviceState.record(0);
                 simtime_t duration = simTime() - startOccupiedTime;
                 sendBatteryConsumptionEvent(duration);
 
@@ -147,13 +151,17 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         delete wifiMsg;
     } else if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         //EV_INFO << "Background Message" << endl;
-        BackgroundEventMessage *backgroundEventMessage = check_and_cast<BackgroundEventMessage *>(msg);
-        if (backgroundEventMessage->getBackgroundType() == BACKGROUND_EVENT_TYPE_WIFI) {
+        BackgroundEventMessage *backgroundEventMessage = check_and_cast<
+                BackgroundEventMessage *>(msg);
+        if (backgroundEventMessage->getBackgroundType()
+                == BACKGROUND_EVENT_TYPE_WIFI) {
 
             EV_INFO << "WIFI BG MSG" << std::endl;
 
-            BackgroundEventEndMessage *endMessage = new BackgroundEventEndMessage();
-            endMessage->setBackgroundEventCancelled(backgroundEventMessage->getBackgroundEventCancelled());
+            BackgroundEventEndMessage *endMessage =
+                    new BackgroundEventEndMessage();
+            endMessage->setBackgroundEventCancelled(
+                    backgroundEventMessage->getBackgroundEventCancelled());
 
             if (backgroundEventMessage->getBackgroundEventCancelled()) {
                 inCancelledBgState = true;
@@ -162,21 +170,26 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 if ((deviceState == DEVICE_STATE_FREE)
                         or (deviceState == DEVICE_STATE_UNKNOWN)) {
                     deviceState = DEVICE_STATE_OCCUPIED_BACKGROUND;
+                    wifiAsyncDeviceState.record(1);
                     startOccupiedTime = simTime();
                     addMessageForUserStats(
                             new StatisticEntry(true, msg->getArrivalTime(),
                                     StatisticType::USAGE_BACKGROUND));
+                    if (inCancelledBgState) {
+                        bgCancelledAndUserActiveInPeriod++;
+                    }
                 } else if (deviceState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
                     EV_INFO << "self collision" << endl;
-                    occupiedBackgroundCollisionBackground++;
+                    occupiedBackgroundStartBackground++;
                 } else {
                     // Occupied user
-                    occupiedUserCollisionBackground++;
+                    occupiedUserStartBackground++;
                 }
 
             } // cancelled / not cancelled event
             if (endMessage != nullptr) {
-                scheduleAt(simTime() + backgroundEventMessage->getDuration(),endMessage);
+                scheduleAt(simTime() + backgroundEventMessage->getDuration(),
+                        endMessage);
             } // tx bg event end msg
 
         } // BG Event type WiFi
@@ -189,11 +202,16 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         if (endMessage->getBackgroundEventCancelled()) {
             //cancelled
             inCancelledBgState = false;
+            if (bgCancelledAndUserActiveInPeriod > 0) {
+                bgCancelledUserActivePeriods++;
+            }
+            bgCancelledAndUserActiveInPeriod = 0;
         } else {
             simtime_t duration = simTime() - startOccupiedTime;
             // Send message to battery
             sendBatteryConsumptionEvent(duration);
             deviceState = DEVICE_STATE_FREE;
+            wifiAsyncDeviceState.record(0);
             addMessageForUserStats(
                     new StatisticEntry(false, msg->getArrivalTime(),
                             StatisticType::USAGE_BACKGROUND));
@@ -290,14 +308,14 @@ void SimpleWiFi::refreshDisplay() const {
 }
 
 void SimpleWiFi::finish() {
-    recordScalar("#occupiedBackgroundCollisionUser",
-            occupiedBackgroundCollisionUser);
-    recordScalar("#occupiedUserCollisionBackground",
-            occupiedUserCollisionBackground);
-    recordScalar("#occupiedBackgroundCollisionBackground",
-            occupiedBackgroundCollisionBackground);
+    recordScalar("#occupiedBackgroundStartUser", occupiedBackgroundStartUser);
+    recordScalar("#occupiedUserStartBackground", occupiedUserStartBackground);
+    recordScalar("#occupiedBackgroundStartBackground",
+            occupiedBackgroundStartBackground);
     recordScalar("#cancelledBackgroundOccupiedUser",
             cancelledBackgroundOccupiedUser);
+
+    recordScalar("#bgCancelledUserActivePeriods", bgCancelledUserActivePeriods);
 
     recordScalar("#txNeglectable", trafficTxNeglectable);
     recordScalar("#rxNeglectable", trafficRxNeglectable);
@@ -315,9 +333,10 @@ void SimpleWiFi::sendBatteryConsumptionEvent(simtime_t duration) {
     cEvent->setSenderType(CAPACITY_EVENT_TYPE_WIFI);
     double chargeChange = -1 * par("txCurrentDrawn").doubleValue()
             * duration.dbl();
-    EV_INFO << "Used " << chargeChange << "C (As) (" << duration << "s)"
+    EV_INFO << "WiFi used " << chargeChange << "C (As) (" << duration << "s)"
                    << std::endl;
     cEvent->setChargeChange(chargeChange); // difference in Coulomb
+    cEvent->setDischargeDuration(duration);
 
     if (gateSize("out") < 1)
         throw cRuntimeError("Invalid number of output gates: %d; must be >=1",
