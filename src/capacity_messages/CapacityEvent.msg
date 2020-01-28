@@ -23,4 +23,5 @@ message CapacityEvent {
     int senderType @enum(CapacityEventType);
     senderType = CAPACITY_EVENT_TYPE_WIFI;
     double chargeChange; // Coulomb
+    simtime_t dischargeDuration; // s
 }
