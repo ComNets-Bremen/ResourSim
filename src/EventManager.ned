@@ -35,11 +35,17 @@ simple EventManager
         volatile bool enableBackgroundOptimizations = default(false);
         volatile bool ignoreBackgroundEventsBatteryInconvenient = default(false);
         volatile bool analyzeUserScreenActivity = default(false);
+        volatile bool analyzeTimeToCharge = default(false);
+        volatile double chargeDecisionQuantil = default(0.5); // median
+        volatile int analyzeTimeToChargeMinDataLen = default(10); // Minimum number of dataset to use this optimization technique
         
         volatile double screenCorrectionFactor = default(1);
         
         // Use the average window for the decision
         volatile int decisionWindow @unit("s") = default(1800s);
+        
+        volatile string writeScreenOffTimes = default("");
+        volatile string writeTimesBetweenChg = default("");
     gates:
         input in[];
         output out[];
