@@ -36,6 +36,7 @@ OBJS = \
     $O/BaseResourceMode.o \
     $O/BucketBattery.o \
     $O/EventManager.o \
+    $O/OnOffDataset.o \
     $O/PhoneEventInjector.o \
     $O/SimpleAirplaneMode.o \
     $O/SimpleBluetooth.o \
