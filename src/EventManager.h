@@ -25,6 +25,7 @@
 #include "DeviceStates.h"
 
 #include "SlidingDataset.h"
+#include "OnOffDataset.h"
 
 using namespace omnetpp;
 
@@ -62,6 +63,11 @@ private:
 
     bool isDeviceCritical;
     bool isDeviceDead;
+    bool isDeviceCharging;
+
+    simtime_t lastChargingStopped = 0.0;
+    double lastChargingStoppedBatteryLevel = 0.0;
+    double batteryLevel = 0.0;
 
     simsignal_t batteryRecalcId;
 
@@ -69,6 +75,9 @@ private:
 
     SlidingDataset<bool> screenDecision;
     SlidingDataset<long> wifiDecision;
+
+    OnOffDataset screenOffTimes;
+    OnOffDataset timeBetweenChg;
 
     cMessage *collectDecisionDatasetsEvent;
 

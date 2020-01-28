@@ -116,6 +116,23 @@ void EventManager::handleMessage(cMessage *msg) {
         return;
     }
 
+    if (dynamic_cast<BatteryEventMessage *>(msg) != nullptr) {
+        BatteryEventMessage *batteryEventMessage = check_and_cast<
+                BatteryEventMessage *>(msg);
+        bool newChargingState = batteryEventMessage->getIs_charging();
+
+        // Unplugged device: Was charging and now is not charging
+        if (isDeviceCharging && !newChargingState) {
+            lastChargingStopped = simTime();
+            lastChargingStoppedBatteryLevel = -1;
+        }
+
+        isDeviceCharging = newChargingState;
+
+        // add dataset will ignore same datasets, i.e. was charging / is still charging
+        timeBetweenChg.addDataset(isDeviceCharging);
+    }
+
     if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
         // Handle Background Events
 
@@ -133,31 +150,75 @@ void EventManager::handleMessage(cMessage *msg) {
 
         if (par("enableBackgroundOptimizations").boolValue()) {
             backgroundEventMessage->setBackgroundEventCancelled(false);
+            if (!isDeviceCharging) { // Do not cancel events if we are charging
 
-            // Do not send messages if battery is weak
-            if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
-                    && isDeviceCritical) {
-                EV_INFO
-                               << "Ignoring background message: Device in inconvenient mode"
-                               << std::endl;
-
-                backgroundEventMessage->setBackgroundEventCancelled(true);
-
-                numberCancelledBackgroundEvents++;
-            } else if (par("analyzeUserScreenActivity").boolValue()) {
-                double correctionFactor =
-                        par("screenCorrectionFactor").doubleValue();
-                if (screenDecision.getPercentageOfValue(true)
-                        > (screenDecision.getPercentageOfValue24Hrs(true)
-                                * correctionFactor)) {
-                    // User was using the device more often compared to the 24hrs average
-                    EV_INFO << "Ignore background task: User is active!"
+                // Do not send messages if battery is weak
+                if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
+                        && isDeviceCritical) {
+                    EV_INFO
+                                   << "Ignoring background message: Device in inconvenient mode"
                                    << std::endl;
 
                     backgroundEventMessage->setBackgroundEventCancelled(true);
+                }
+
+                // Do not send messages if user is active
+                if (par("analyzeUserScreenActivity").boolValue()) {
+                    double correctionFactor =
+                            par("screenCorrectionFactor").doubleValue();
+                    if (screenDecision.getPercentageOfValue(true)
+                            > (screenDecision.getPercentageOfValue24Hrs(true)
+                                    * correctionFactor)) {
+                        // User was using the device more often compared to the 24hrs average
+                        EV_INFO << "Ignore background task: User is active!"
+                                       << std::endl;
+
+                        backgroundEventMessage->setBackgroundEventCancelled(
+                                true);
+                    } // Drop message
+                }
+
+                // Do not send messages if battery might be drained
+                if (par("analyzeTimeToCharge").boolValue()) {
+                    if (timeBetweenChg.getLen()
+                            > par("analyzeTimeToChargeMinDataLen").intValue()) {
+                        simtime_t quantilTtc = timeBetweenChg.getQuantil(
+                                par("chargeDecisionQuantil").doubleValue());
+                        simtime_t runningOnBat = simTime()
+                                - lastChargingStopped;
+
+                        double chgTimeWindowPercentage = runningOnBat
+                                / quantilTtc;
+
+                        EV_INFO << "Last charging was " << runningOnBat
+                                       << " seconds ago and we are at level "
+                                       << batteryLevel
+                                       << " and in average, we start charging with the "
+                                       << par("chargeDecisionQuantil").doubleValue()
+                                               * 100.0 << "% quantil after "
+                                       << quantilTtc
+                                       << "seconds. percentage of quantil: "
+                                       << chgTimeWindowPercentage
+                                       << " Battery level when we started discharging: "
+                                       << lastChargingStoppedBatteryLevel
+                                       << std::endl;
+
+                        // TODO: Handle according to battery level and time to charge
+
+
+
+                    } else {
+                        EV_INFO
+                                       << "Not enough data to perform optimization according to charging behavior."
+                                       << std::endl;
+                    }
+                }
+
+                // Count cancelled messages for stats
+                if (backgroundEventMessage->getBackgroundEventCancelled()){
                     numberCancelledBackgroundEvents++;
-                } // Drop message
-            } // Analyze screen activity
+                }
+            }
         } // Enable optimizations
 
         // Forward to all nodes
@@ -237,15 +298,18 @@ void EventManager::refreshDisplay() const {
  */
 void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
         cObject *details) {
-    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)){
-        EV_INFO << "DEVICE inconvenient" << std::endl;
+    if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)) {
+        if (b) EV_INFO << "DEVICE inconvenient" << std::endl;
         isDeviceCritical = b;
     } else if (signal == registerSignal(SCREEN_STATUS_UPDATE_SIGNAL)) {
+        screenOffTimes.addDataset(b);
         screenDecision.addDataset(b);
         EV_INFO << "RX SCREEN STATUS MESSAGE " << b
                        << " Screen was occupied by user: "
                        << screenDecision.getPercentageOfValue(true)
-                       << std::endl;
+                       << " Number of stored values: "
+                       << screenOffTimes.getLen() << " Median: "
+                       << screenOffTimes.getMedian() << std::endl;
     } else {
         EV_ERROR << "Received unhandled signal!" << std::endl;
     }
@@ -254,7 +318,14 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
 void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d,
         cObject *details) {
     if (signal == registerSignal(BATTERY_PERCENTAGE_SIGNAL)) {
+        batteryLevel = d;
+
         EV_INFO << "Battery value: " << d << std::endl;
+
+        // Charging was stopped just before. Store last Battery Level.
+        if (lastChargingStoppedBatteryLevel < 0)
+            lastChargingStoppedBatteryLevel = batteryLevel;
+
         if (d < 0.01) {
             isDeviceDead = true;
             EV_INFO << "DEVICE IS DEAD" << std::endl;
@@ -279,6 +350,32 @@ void EventManager::finish() {
     recordScalar("Number of Background Events", numberBackgroundEvents);
     recordScalar("Number of cancelled background Events",
             numberCancelledBackgroundEvents);
+
+    recordScalar("#percentageCancelledEvents",
+            double(numberCancelledBackgroundEvents)
+                    / double(numberBackgroundEvents));
+
+    if (par("writeScreenOffTimes").stdstringValue().length() != 0) {
+        std::string path = par("writeScreenOffTimes").stdstringValue();
+        EV_INFO << "Storing data to " << path << std::endl;
+        if (screenOffTimes.storeVectorToFile(path)) {
+            EV_INFO << "Data successfully stored. Median: "
+                           << screenOffTimes.getMedian() << std::endl;
+        } else {
+            EV_INFO << "Error storing data. Dataset empty?" << std::endl;
+        }
+    }
+
+    if (par("writeTimesBetweenChg").stdstringValue().length() != 0) {
+        std::string path = par("writeTimesBetweenChg").stdstringValue();
+        EV_INFO << "Storing data to " << path << std::endl;
+        if (timeBetweenChg.storeVectorToFile(path)) {
+            EV_INFO << "Data successfully stored. Median: "
+                           << timeBetweenChg.getMedian() << std::endl;
+        } else {
+            EV_INFO << "Error storing data. Dataset empty?" << std::endl;
+        }
+    }
 }
 
 }
