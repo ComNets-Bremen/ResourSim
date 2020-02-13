@@ -54,6 +54,7 @@ private:
     cOutVector currentBatteryPercentage; // %
     cOutVector batteryCritical; // 1/0
     cOutVector batteryIsCharging; // 1/0
+    cOutVector realBatteryLevel; // %
 
     simsignal_t batteryPercentageSignalId;
     simsignal_t batteryPercentageInconvinientSignalId;

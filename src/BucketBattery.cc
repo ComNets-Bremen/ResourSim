@@ -33,6 +33,7 @@ void BucketBattery::initialize() {
     currentBatteryPercentage.setName("Current capacity in %");
     batteryCritical.setName("Battery critical");
     batteryIsCharging.setName("Is Charging");
+    realBatteryLevel.setName("Battery level reported by real device");
 
     collectMeasurementsEvent = new cMessage("collectMeasurements");
     scheduleAt(0, collectMeasurementsEvent);
@@ -56,6 +57,8 @@ void BucketBattery::handleMessage(cMessage *msg) {
 
         BatteryEventMessage *batMsg = check_and_cast<BatteryEventMessage *>(
                 msg);
+
+        realBatteryLevel.record(batMsg->getTheoreticalAbsolutePercentage());
 
         bool currentBatteryState = batMsg->getChg_ac() || batMsg->getChg_usb()
                 || batMsg->getChg_ac() || batMsg->getIs_charging();
