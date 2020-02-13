@@ -41,7 +41,8 @@ void SimpleBluetooth::initialize() {
 
 void SimpleBluetooth::receiveSignal(cComponent *component, simsignal_t signal,
         bool b, cObject *details) {
-    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    //Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    Enter_Method("receiveSignal(signal=%s, value=%b", getSignalName(signal), b);
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
         if (bluetoothIsUsed) {
             EV_INFO << "Recalc used energy for Bluetooth network due to regular event." << std::endl;

@@ -43,7 +43,8 @@ void SimpleCellular::initialize() {
 
 void SimpleCellular::receiveSignal(cComponent *component, simsignal_t signal,
         bool b, cObject *details) {
-    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+//    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    Enter_Method("receiveSignal(signal=%s, value=%b", getSignalName(signal), b);
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
         if (cellularIsUsed) {
             EV_INFO << "Recalc used energy for cellular network due to regular event." << std::endl;

@@ -74,9 +74,8 @@ void SimpleHighPowerCpu::refreshDisplay() const {
 
 void SimpleHighPowerCpu::receiveSignal(cComponent *component,
         simsignal_t signal, bool b, cObject *details) {
-    Enter_Method
-    (
-            "receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+//    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    Enter_Method("receiveSignal(signal=%s, value=%b", getSignalName(signal), b);
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
         if (backgroundServiceEndMessage != nullptr) {
             EV_INFO << "Recalc used energy for CPU usage due to regular event."

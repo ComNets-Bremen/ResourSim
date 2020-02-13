@@ -49,7 +49,8 @@ void SimpleScreen::initialize() {
 
 void SimpleScreen::receiveSignal(cComponent *component, simsignal_t signal,
         bool b, cObject *details) {
-    Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    //Enter_Method("receiveSignal(cComponent *component, simsignal_t signal, bool b, cObject *details)");
+    Enter_Method("receiveSignal(signal=%s, value=%b", getSignalName(signal), b);
     if (signal == registerSignal(CALCULATE_BATTERY_DIFFS)) {
         if (screenOn) {
             EV_INFO << "Recalc used energy for screen due to regular event." << std::endl;
