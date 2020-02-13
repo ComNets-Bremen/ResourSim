@@ -35,6 +35,7 @@ OBJS = \
     $O/BackgroundServiceInjector.o \
     $O/BaseResourceMode.o \
     $O/BucketBattery.o \
+    $O/DeviceFsm.o \
     $O/EventManager.o \
     $O/OnOffDataset.o \
     $O/PhoneEventInjector.o \
