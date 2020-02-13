@@ -27,6 +27,9 @@ simple SimpleWiFi
         volatile double txCurrentDrawn = default(0.1); // 100 mA, TODO: Check
         
         volatile double trafficNeglectable = default(10000); // 10kb
+        
+        volatile bool rescheduleInteruptedBackgroundTasks = default(false); // user active and job is interrupted -> run the remaining time later
+        volatile bool enqueueBackgroundTasks = default(false); // bg active / user active and new bg job arrives -> enqueue and start later
     gates:
         input in[];
         output out[];

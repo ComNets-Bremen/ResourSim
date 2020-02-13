@@ -18,6 +18,7 @@
 
 #include <omnetpp.h>
 #include <map>
+#include <queue>
 #include <algorithm>
 #include "event_messages/EventMessages.h"
 #include "background_messages/BackgroundMessages.h"
@@ -25,6 +26,7 @@
 #include "DeviceStates.h"
 #include "BaseResourceMode.h"
 #include "ResourceSignals.h"
+#include "DeviceFsm.h"
 
 using namespace omnetpp;
 
@@ -33,18 +35,29 @@ namespace eventsimulator {
 /**
  * TODO - Generated class
  */
-class SimpleWiFi: public BaseResourceMode, public cListener {
+class SimpleWiFi: public BaseResourceMode, public cListener , public DeviceFsm{
 public:
     SimpleWiFi();
     ~SimpleWiFi();
 
     void refreshDisplay() const;
 
-    DeviceStates getDeviceState() const;
     virtual void receiveSignal(cComponent *component, simsignal_t signal,
             bool b, cObject *details);
 
     void finish();
+
+    virtual void onEnterIdle(DeviceStates oldState, DeviceStates newState, void *param);
+    virtual void onEnterBackgroundActive(DeviceStates oldState, DeviceStates newState, void *param);
+    virtual void onEnterUserActive(DeviceStates oldState, DeviceStates newState, void *param);
+
+    virtual bool onExitBackgroundActive(DeviceStates oldState, DeviceStates newState, void *param);
+    virtual bool onExitUserActive(DeviceStates oldState, DeviceStates newState, void *param);
+    virtual bool onExitIdle(DeviceStates oldState, DeviceStates newState, void *param);
+
+    virtual void onTransitionDone(DeviceStates deviceState);
+
+    static simtime_t simMax(simtime_t a, simtime_t b);
 
 protected:
     virtual void initialize();
@@ -58,9 +71,6 @@ private:
     void calcTrafficDelta(TrafficEventValues start, TrafficEventValues stop,
             simtime_t duration);
 
-    DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
-    DeviceStates asyncDeviceState = DEVICE_STATE_UNKNOWN;
-
     long trafficTxNeglectable = 0;
     long trafficRxNeglectable = 0;
     long trafficTxTotal = 0;
@@ -71,7 +81,7 @@ private:
     cOutVector wifiStatusValues;
     cOutVector wifiStatusOn;
     cOutVector wifiStatusOff;
-    cOutVector wifiDeviceState;
+    cOutVector regularWifiDeviceState;
     cOutVector wifiAsyncDeviceState;
 
     cOutVector txBitPerSecond;
@@ -111,17 +121,12 @@ private:
      * 
      */
 
-    long occupiedUserStartBackground = 0;       // User is using the device and a background should be started
-    long occupiedBackgroundStartUser = 0;       // A background task is running and the user accesses the device
-    long occupiedBackgroundStartBackground = 0; // A background task is running and a second background task is started (self collision)
-    long cancelledBackgroundOccupiedUser = 0;   // Background service was cancelled and user is now using the device.   
-    long bgCancelledUserActivePeriods = 0;      // Background service was cancelled and the user was using the device in this period
     
-    long bgCancelledAndUserActiveInPeriod = 0;  // Number of collisions with cancelled bg events by user in this period
-
     simtime_t lastTrafficEvent = 0;
     simtime_t lastUserWifiEvent = 0;
     simtime_t lastTrafficCalculation = 0;
+
+    simtime_t lastCalculateBatteryDiffs = 0;
 
     long mobile_rx = 0;
     long mobile_tx = 0;
@@ -133,13 +138,16 @@ private:
 
     DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 
-    bool inCancelledBgState = false;
-
-    
-
-    simtime_t startOccupiedTime = 0;
-
     cMessage *collectMeasurementsEvent = nullptr;
+
+    BackgroundEventEndMessage *backgroundEventEndMessage = nullptr;
+
+    std::queue<simtime_t> bgJobsToContinue;
+
+    long userActiveBgRequested = 0;
+    long bgTotalStarted = 0;
+    long bgJobsInterruptedByUser = 0;
+
 };
 
 } //namespace
