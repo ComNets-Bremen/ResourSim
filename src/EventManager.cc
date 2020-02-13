@@ -340,7 +340,7 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
         cObject *details) {
     if (signal == registerSignal(WIFI_STATUS_UPDATE_SIGNAL)) {
         wifiDecision.addDataset(l);
-        EV_INFO << "WIFI STATUS IS IN RECEIVER " << l << " WiFi was on: "
+        EV_INFO << "WIFI STATUS IS IN RECEIVER " << getDeviceStateName(static_cast<DeviceStates>(l)) << " WiFi was on: "
                        << wifiDecision.getPercentageOfValue(
                                DEVICE_STATE_OCCUPIED_USER) << std::endl;
     }
