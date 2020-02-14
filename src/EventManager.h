@@ -22,6 +22,8 @@
 #include "capacity_messages/CapacityMessages.h"
 #include "ResourceSignals.h"
 
+#include "SimpleWiFi.h" // for module handling, TODO: Check if double include or if it can be optimized?
+
 #include "DeviceStates.h"
 
 #include "SlidingDataset.h"
@@ -66,6 +68,8 @@ private:
     bool isDeviceCharging;
 
     simtime_t lastChargingStopped = 0.0;
+
+    simtime_t startWiFiFreePeriod = 0;
     double lastChargingStoppedBatteryLevel = 0.0;
     double batteryLevel = 0.0;
 
@@ -89,6 +93,8 @@ private:
 
     long numberBackgroundEvents;
     long numberCancelledBackgroundEvents;
+
+    cHistogram userEventHistogram;
 };
 
 }; // namespace

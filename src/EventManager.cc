@@ -75,6 +75,15 @@ void EventManager::initialize() {
 
     numberBackgroundEvents = 0;
     numberCancelledBackgroundEvents = 0;
+
+    //cAutoRangeHistogramStrategy *strategy = new cAutoRangeHistogramStrategy();
+    //cDefaultHistogramStrategy *strategy = new cDefaultHistogramStrategy();
+
+    cFixedRangeHistogramStrategy *strategy = new cFixedRangeHistogramStrategy(0, 24*60*60, 24*60*60/120);
+
+    userEventHistogram.setName("Time between user events");
+    userEventHistogram.setMode(cHistogram::MODE_DOUBLES);
+    userEventHistogram.setStrategy(strategy);
 }
 
 EventManager::~EventManager() {
@@ -107,7 +116,7 @@ EventManager::~EventManager() {
 void EventManager::handleMessage(cMessage *msg) {
     // Device dead: Only charging messages can pass
     if (par("stopForwardingDeviceDead").boolValue() && isDeviceDead
-            && dynamic_cast<BatteryEventMessage *>(msg) == nullptr) {
+            && dynamic_cast<BatteryEventMessage*>(msg) == nullptr) {
         // Do not forward message if
         // - Setup via config
         // - device is in dead status (battery empty)
@@ -116,9 +125,9 @@ void EventManager::handleMessage(cMessage *msg) {
         return;
     }
 
-    if (dynamic_cast<BatteryEventMessage *>(msg) != nullptr) {
+    if (dynamic_cast<BatteryEventMessage*>(msg) != nullptr) {
         BatteryEventMessage *batteryEventMessage = check_and_cast<
-                BatteryEventMessage *>(msg);
+                BatteryEventMessage*>(msg);
         bool newChargingState = batteryEventMessage->getIs_charging();
 
         // Unplugged device: Was charging and now is not charging
@@ -133,12 +142,12 @@ void EventManager::handleMessage(cMessage *msg) {
         timeBetweenChg.addDataset(isDeviceCharging);
     }
 
-    if (dynamic_cast<BackgroundEventMessage *>(msg) != nullptr) {
+    if (dynamic_cast<BackgroundEventMessage*>(msg) != nullptr) {
         // Handle Background Events
 
         EV_INFO << "Background Message" << endl;
         BackgroundEventMessage *backgroundEventMessage = check_and_cast<
-                BackgroundEventMessage *>(msg);
+                BackgroundEventMessage*>(msg);
         if (backgroundEventMessage == nullptr) {
             EV_ERROR << "Casting error" << std::endl;
             delete msg;
@@ -205,8 +214,6 @@ void EventManager::handleMessage(cMessage *msg) {
 
                         // TODO: Handle according to battery level and time to charge
 
-
-
                     } else {
                         EV_INFO
                                        << "Not enough data to perform optimization according to charging behavior."
@@ -215,7 +222,7 @@ void EventManager::handleMessage(cMessage *msg) {
                 }
 
                 // Count cancelled messages for stats
-                if (backgroundEventMessage->getBackgroundEventCancelled()){
+                if (backgroundEventMessage->getBackgroundEventCancelled()) {
                     numberCancelledBackgroundEvents++;
                 }
             }
@@ -233,10 +240,10 @@ void EventManager::handleMessage(cMessage *msg) {
             emit(batteryRecalcId, true);
         scheduleAt(simTime() + par("sendBatteryCollectSignalEvent").intValue(),
                 msg);
-    } else if (dynamic_cast<BaseEventMessage *>(msg) != nullptr) {
+    } else if (dynamic_cast<BaseEventMessage*>(msg) != nullptr) {
         // Phone / user events
 
-        BaseEventMessage *message = check_and_cast<BaseEventMessage *>(msg);
+        BaseEventMessage *message = check_and_cast<BaseEventMessage*>(msg);
         if (message == nullptr) {
             EV_ERROR << "Casting error" << std::endl;
             delete msg;
@@ -246,8 +253,8 @@ void EventManager::handleMessage(cMessage *msg) {
         for (int i = 0; i < gateSize("out"); i++)
             send(msg->dup(), "out", i);
         delete msg;
-    } else if (dynamic_cast<CapacityEvent *>(msg) != nullptr) {
-        CapacityEvent *cEvent = check_and_cast<CapacityEvent *>(msg);
+    } else if (dynamic_cast<CapacityEvent*>(msg) != nullptr) {
+        CapacityEvent *cEvent = check_and_cast<CapacityEvent*>(msg);
         if (cEvent == nullptr) {
             EV_ERROR << "Casting error" << std::endl;
             delete msg;
@@ -299,7 +306,8 @@ void EventManager::refreshDisplay() const {
 void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
         cObject *details) {
     if (signal == registerSignal(BATTERY_INCONVENIENT_SIGNAL)) {
-        if (b) EV_INFO << "DEVICE inconvenient" << std::endl;
+        if (b)
+            EV_INFO << "DEVICE inconvenient" << std::endl;
         isDeviceCritical = b;
     } else if (signal == registerSignal(SCREEN_STATUS_UPDATE_SIGNAL)) {
         screenOffTimes.addDataset(b);
@@ -339,11 +347,41 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, double d,
 void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
         cObject *details) {
     if (signal == registerSignal(WIFI_STATUS_UPDATE_SIGNAL)) {
+        DeviceStates deviceState = static_cast<DeviceStates>(l);
         wifiDecision.addDataset(l);
-        EV_INFO << "WIFI STATUS IS IN RECEIVER " << getDeviceStateName(static_cast<DeviceStates>(l)) << " WiFi was on: "
+        EV_INFO << "WIFI STATUS IS IN RECEIVER "
+                       << getDeviceStateName(deviceState) << " WiFi was on: "
                        << wifiDecision.getPercentageOfValue(
                                DEVICE_STATE_OCCUPIED_USER) << std::endl;
+
+        // Calc avg time between user activity
+
+        SimpleWiFi *simpleWiFi = check_and_cast<SimpleWiFi*>(src);
+        switch (deviceState) {
+        case DEVICE_STATE_OCCUPIED_USER:
+            if (startWiFiFreePeriod != 0){
+                simtime_t lastFreePeriod = simTime() - startWiFiFreePeriod;
+                EV_INFO << "WiFi was not used by user for " << lastFreePeriod << "s" << std::endl;
+                userEventHistogram.collect(lastFreePeriod.dbl());
+
+                // TODO add for histogram, ensure free was after user state
+            }
+
+            break;
+        case DEVICE_STATE_FREE:
+            // transition user -> Free
+            if (simpleWiFi->getPreviousDeviceState() == DEVICE_STATE_OCCUPIED_USER){
+                EV_INFO << "Transition from user -> free" << std::endl;
+                startWiFiFreePeriod = simTime();
+            }
+            break;
+
+        default:
+            EV_INFO << "Ignoring bg services" << std::endl;
+            // only interested in user wifi activity
+        }
     }
+
 }
 
 void EventManager::finish() {
@@ -376,6 +414,7 @@ void EventManager::finish() {
             EV_INFO << "Error storing data. Dataset empty?" << std::endl;
         }
     }
+    userEventHistogram.recordAs("Time between user events");
 }
 
 }

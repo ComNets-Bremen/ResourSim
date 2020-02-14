@@ -103,7 +103,9 @@ void SimpleWiFi::finish() {
     recordScalar("#bgTotalStarted", bgTotalStarted);
     recordScalar("#bgJobsInterruptedByUser", bgJobsInterruptedByUser);
     if (bgTotalStarted > 0)
-        recordScalar("#percentage of not successfully run bg jobs", (userActiveBgRequested + bgJobsInterruptedByUser)/bgTotalStarted);
+        recordScalar("#percentage of not successfully run bg jobs",
+                (userActiveBgRequested + bgJobsInterruptedByUser)
+                        / bgTotalStarted);
     else
         recordScalar("#percentage of not successfully run bg jobs", 0);
 }
@@ -161,7 +163,8 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
         EV_INFO << "Periodic WiFi status: on: " << on << ", off: " << off
                        << " in the last " << par("statsWindowSize").intValue()
-                       << "s calculated using " << getNumOfMessagesForUserStats()<< std::endl;
+                       << "s calculated using "
+                       << getNumOfMessagesForUserStats() << std::endl;
 
         wifiStatusOn.record(on);
         wifiStatusOff.record(off);
@@ -395,15 +398,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
 
      } else if
      */
-
-
-
-    // There might be a state change -> notify listeners
-    simsignal_t signal = registerSignal(WIFI_STATUS_UPDATE_SIGNAL);
-    if (mayHaveListeners(signal))
-        emit(signal, getDeviceState());
 }
-
 
 /**
  * Tell the battery that it got drained
@@ -437,45 +432,39 @@ void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
         throw cRuntimeError("duration cannot be negative!: %d", duration.dbl());
     }
 
-        EV_INFO << "Mobile rx: " << stop.mobile_rx << " - " << start.mobile_rx
-                       << " = " << (stop.mobile_rx - start.mobile_rx)
-                       << std::endl;
-        EV_INFO << "Mobile tx: " << stop.mobile_tx << " - " << start.mobile_tx
-                       << " = " << (stop.mobile_tx - start.mobile_tx)
-                       << std::endl;
-        EV_INFO << "Total  rx: " << stop.total_rx << " - " << start.total_rx
-                       << " = " << (stop.total_rx - start.total_rx)
-                       << std::endl;
-        EV_INFO << "Total  tx: " << stop.total_tx << " - " << start.total_tx
-                       << " = " << (stop.total_tx - start.total_tx)
-                       << std::endl;
-        EV_INFO << "Duration: " << duration << std::endl;
+    EV_INFO << "Mobile rx: " << stop.mobile_rx << " - " << start.mobile_rx
+                   << " = " << (stop.mobile_rx - start.mobile_rx) << std::endl;
+    EV_INFO << "Mobile tx: " << stop.mobile_tx << " - " << start.mobile_tx
+                   << " = " << (stop.mobile_tx - start.mobile_tx) << std::endl;
+    EV_INFO << "Total  rx: " << stop.total_rx << " - " << start.total_rx
+                   << " = " << (stop.total_rx - start.total_rx) << std::endl;
+    EV_INFO << "Total  tx: " << stop.total_tx << " - " << start.total_tx
+                   << " = " << (stop.total_tx - start.total_tx) << std::endl;
+    EV_INFO << "Duration: " << duration << std::endl;
 
-        double kbyteRx = (stop.total_rx - start.total_rx) / 1024;
-        double kbyteTx = (stop.total_tx - start.total_tx) / 1024;
+    double kbyteRx = (stop.total_rx - start.total_rx) / 1024;
+    double kbyteTx = (stop.total_tx - start.total_tx) / 1024;
 
-        EV_INFO << "Total kb rx: " << kbyteRx << std::endl;
-        EV_INFO << "Total kb tx: " << kbyteTx << std::endl;
+    EV_INFO << "Total kb rx: " << kbyteRx << std::endl;
+    EV_INFO << "Total kb tx: " << kbyteTx << std::endl;
 
 //        totalRxKbHist.collect((stop.total_rx - start.total_rx));
 //        totalTxKbHist.collect((stop.total_tx - start.total_tx));
-        TotalRxBitinInterval.record((stop.total_rx - start.total_rx));
-        TotalTxBitinInterval.record((stop.total_tx - start.total_tx));
+    TotalRxBitinInterval.record((stop.total_rx - start.total_rx));
+    TotalTxBitinInterval.record((stop.total_tx - start.total_tx));
 
-        txBitPerSecond.record(
-                (double) (stop.total_tx - start.total_tx) / duration);
-        RxBitPerSecond.record(
-                (double) (stop.total_rx - start.total_rx) / duration);
+    txBitPerSecond.record((double) (stop.total_tx - start.total_tx) / duration);
+    RxBitPerSecond.record((double) (stop.total_rx - start.total_rx) / duration);
 
-        if ((stop.total_rx - start.total_rx)
-                < par("trafficNeglectable").doubleValue())
-            trafficRxNeglectable++;
-        if ((stop.total_tx - start.total_tx)
-                < par("trafficNeglectable").doubleValue())
-            trafficTxNeglectable++;
+    if ((stop.total_rx - start.total_rx)
+            < par("trafficNeglectable").doubleValue())
+        trafficRxNeglectable++;
+    if ((stop.total_tx - start.total_tx)
+            < par("trafficNeglectable").doubleValue())
+        trafficTxNeglectable++;
 
-        trafficTxTotal++;
-        trafficRxTotal++;
+    trafficTxTotal++;
+    trafficRxTotal++;
 }
 
 void SimpleWiFi::onEnterBackgroundActive(DeviceStates oldState,
@@ -522,7 +511,8 @@ bool SimpleWiFi::onExitBackgroundActive(DeviceStates oldState,
                        << backgroundEventEndMessage->getArrivalTime()
                                - simTime() << "seconds" << std::endl;
         if (par("rescheduleInteruptedBackgroundTasks").boolValue()) {
-            EV_INFO << "Keeping remaining time for job rescheduling" << std::endl;
+            EV_INFO << "Keeping remaining time for job rescheduling"
+                           << std::endl;
             bgJobsToContinue.push(
                     backgroundEventEndMessage->getArrivalTime() - simTime());
         }
@@ -582,7 +572,7 @@ bool SimpleWiFi::onExitUserActive(DeviceStates oldState, DeviceStates newState,
         return false;
     } else if (newState == DEVICE_STATE_OCCUPIED_BACKGROUND) {
         userActiveBgRequested++; // count for stats
-        if (par("enqueueBackgroundTasks").boolValue()){
+        if (par("enqueueBackgroundTasks").boolValue()) {
             // run the job when in idle stat
             simtime_t *duration = static_cast<simtime_t*>(param);
             bgJobsToContinue.push(*duration);
@@ -593,8 +583,10 @@ bool SimpleWiFi::onExitUserActive(DeviceStates oldState, DeviceStates newState,
 
     EV_INFO << "Battery timings: " << std::endl;
     EV_INFO << "  simTime=" << simTime() << std::endl;
-    EV_INFO << "  lastCalcBatteryDiffs=" << lastCalculateBatteryDiffs << std::endl;
-    EV_INFO << "  inCurrentStateSince=" << getInCurrentStateSince() << std::endl;
+    EV_INFO << "  lastCalcBatteryDiffs=" << lastCalculateBatteryDiffs
+                   << std::endl;
+    EV_INFO << "  inCurrentStateSince=" << getInCurrentStateSince()
+                   << std::endl;
     EV_INFO << std::endl;
 
     sendBatteryConsumptionEvent(
@@ -631,20 +623,24 @@ void SimpleWiFi::onEnterIdle(DeviceStates oldState, DeviceStates newState,
 // TODO Implement
 }
 
-void SimpleWiFi::onTransitionDone(DeviceStates deviceState){
-    if (deviceState == DEVICE_STATE_FREE){
+void SimpleWiFi::onTransitionDone(DeviceStates deviceState) {
+    if (deviceState == DEVICE_STATE_FREE) {
         // Schedule next state?
         if (par("rescheduleInteruptedBackgroundTasks").boolValue()) {
             if (bgJobsToContinue.size() > 0) {
                 simtime_t remainingDuration = bgJobsToContinue.front();
                 bgJobsToContinue.pop();
-                setNewState(DEVICE_STATE_OCCUPIED_BACKGROUND, &remainingDuration);
+                setNewState(DEVICE_STATE_OCCUPIED_BACKGROUND,
+                        &remainingDuration);
             }
         }
 
     }
+    // State change done -> notify listeners
+    simsignal_t signal = registerSignal(WIFI_STATUS_UPDATE_SIGNAL);
+    if (mayHaveListeners(signal))
+        emit(signal, getDeviceState());
 }
-
 
 simtime_t SimpleWiFi::simMax(simtime_t a, simtime_t b) {
     if (a > b)
