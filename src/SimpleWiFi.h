@@ -68,8 +68,7 @@ private:
     bool initialized = false;
     int lastReceivedWifiStatus = WIFI_UNKNOWN;
 
-    void calcTrafficDelta(TrafficEventValues start, TrafficEventValues stop,
-            simtime_t duration);
+    void calcTrafficDelta(TrafficEventValues start, TrafficEventValues stop);
 
     long trafficTxNeglectable = 0;
     long trafficRxNeglectable = 0;
@@ -122,9 +121,7 @@ private:
      */
 
     
-    simtime_t lastTrafficEvent = 0;
     simtime_t lastUserWifiEvent = 0;
-    simtime_t lastTrafficCalculation = 0;
 
     simtime_t lastCalculateBatteryDiffs = 0;
 
@@ -133,8 +130,8 @@ private:
     long total_rx = 0;
     long total_tx = 0;
 
-    TrafficEventValues lastTrafficValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0};
-    TrafficEventValues trafficWifiStartValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0};
+    TrafficEventValues lastTrafficValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0, .received=0};
+    TrafficEventValues trafficWifiStartValues = {.mobile_rx = 0, .mobile_tx=0, .total_rx=0, .total_tx=0, .received=0};
 
     DeviceStates lastTrafficDeviceState = DEVICE_STATE_UNKNOWN;
 

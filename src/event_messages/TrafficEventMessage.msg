@@ -23,6 +23,7 @@ struct TrafficEventValues{
     long mobile_tx;
     long total_rx;
     long total_tx;
+    omnetpp::simtime_t received;
 };
 }}
 message BaseEventMessage;

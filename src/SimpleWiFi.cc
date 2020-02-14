@@ -179,8 +179,7 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
                 TrafficEventMessage*>(msg);
         EV_INFO << "TRAFFIC EVENT!!" << trafficEventMessage->str() << std::endl;
 
-        lastTrafficEvent = trafficEventMessage->getArrivalTime();
-
+        lastTrafficValues.received = trafficEventMessage->getArrivalTime();
         lastTrafficValues.mobile_rx = trafficEventMessage->getMobile_rx();
         lastTrafficValues.mobile_tx = trafficEventMessage->getMobile_tx();
         lastTrafficValues.total_rx = trafficEventMessage->getTotal_rx();
@@ -431,12 +430,13 @@ void SimpleWiFi::sendBatteryConsumptionEvent(simtime_t startTime) {
 }
 
 void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
-        TrafficEventValues stop, simtime_t duration) {
-    if (duration <= 0) {
-        EV_ERROR << "Duration LE 0!" << std::endl;
-        return;
+        TrafficEventValues stop) {
+    simtime_t duration = stop.received - start.received;
+
+    if (duration < 0) {
+        throw cRuntimeError("duration cannot be negative!: %d", duration.dbl());
     }
-    if ((simTime() - lastTrafficCalculation) > 2) {
+
         EV_INFO << "Mobile rx: " << stop.mobile_rx << " - " << start.mobile_rx
                        << " = " << (stop.mobile_rx - start.mobile_rx)
                        << std::endl;
@@ -476,10 +476,6 @@ void SimpleWiFi::calcTrafficDelta(TrafficEventValues start,
 
         trafficTxTotal++;
         trafficRxTotal++;
-
-        lastTrafficCalculation = simTime();
-    }
-
 }
 
 void SimpleWiFi::onEnterBackgroundActive(DeviceStates oldState,
@@ -575,6 +571,7 @@ void SimpleWiFi::onEnterUserActive(DeviceStates oldState, DeviceStates newState,
             new StatisticEntry(true, simTime(), StatisticType::USAGE_USER));
     cleanupMessagesForStats();
     wifiAsyncDeviceState.record(DEVICE_STATE_OCCUPIED_USER);
+    trafficWifiStartValues = lastTrafficValues; // for traffic calculation
 }
 
 bool SimpleWiFi::onExitUserActive(DeviceStates oldState, DeviceStates newState,
@@ -606,6 +603,8 @@ bool SimpleWiFi::onExitUserActive(DeviceStates oldState, DeviceStates newState,
             new StatisticEntry(false, simTime(), StatisticType::USAGE_USER));
     cleanupMessagesForStats();
     wifiAsyncDeviceState.record(DEVICE_STATE_FREE);
+
+    calcTrafficDelta(trafficWifiStartValues, lastTrafficValues);
 
     return true; // Transition successful
 }
