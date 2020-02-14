@@ -35,6 +35,14 @@ public:
      */
     DeviceStates getDeviceState(void) const;
 
+
+    /**
+     * Return last state
+     *
+     * @return previous device state
+     */
+    DeviceStates getPreviousDeviceState(void) const;
+
     /**
      * Returns the time the node is in the current state
      */
@@ -150,6 +158,7 @@ public:
 
 private:
     DeviceStates deviceState = DEVICE_STATE_UNKNOWN;
+    DeviceStates previousState = DEVICE_STATE_UNKNOWN;
     simtime_t inCurrentStateSince = 0;
     bool isInTransition = false;
 };

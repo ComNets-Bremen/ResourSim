@@ -22,6 +22,10 @@ DeviceStates DeviceFsm::getDeviceState(void) const {
     return deviceState;
 }
 
+DeviceStates DeviceFsm::getPreviousDeviceState(void) const {
+    return previousState;
+}
+
 
 void DeviceFsm::initState() {
     initState(DEVICE_STATE_FREE, nullptr);
@@ -94,6 +98,7 @@ bool DeviceFsm::setNewState(DeviceStates newState, void *param) {
 
         }
         inCurrentStateSince = simTime();
+        previousState = deviceState;
         deviceState = newState;
         isInTransition = false;
 
