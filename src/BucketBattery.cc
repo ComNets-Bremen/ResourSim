@@ -41,6 +41,7 @@ void BucketBattery::initialize() {
     batteryPercentageSignalId = registerSignal(BATTERY_PERCENTAGE_SIGNAL);
     batteryPercentageInconvinientSignalId = registerSignal(
     BATTERY_INCONVENIENT_SIGNAL);
+    batteryStateChangedSignalId = registerSignal(BATTERY_STATE_CHANGED_SIGNAL);
 
     batteryCharge = 0.5 * par("batteryCapacityCoulomb").doubleValue(); // We start with a half filled battery
 }
@@ -80,6 +81,10 @@ void BucketBattery::handleMessage(cMessage *msg) {
             batteryCharge = std::fmin(batteryCharge,
                     par("batteryCapacityCoulomb")); // Bucket model cannot be fuller than full
             batteryCharge = std::fmax(batteryCharge, 0); // Or less than null
+
+            if (mayHaveListeners(batteryStateChangedSignalId))
+                emit(batteryStateChangedSignalId, currentBatteryState);
+
         }
 
         recalculateBatteryCharge();

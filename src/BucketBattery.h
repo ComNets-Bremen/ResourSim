@@ -58,6 +58,7 @@ private:
 
     simsignal_t batteryPercentageSignalId;
     simsignal_t batteryPercentageInconvinientSignalId;
+    simsignal_t batteryStateChangedSignalId;
 };
 
 } //namespace
