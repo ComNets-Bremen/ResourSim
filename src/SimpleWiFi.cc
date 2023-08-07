@@ -56,6 +56,8 @@ void SimpleWiFi::initialize() {
     TotalRxBitinInterval.setName("WiFi Bit TX in Interval");
     TotalTxBitinInterval.setName("WiFi Bit RX in Interval");
 
+    percentageInterrupedWiFiEvents.setName("Percentage cancelled WiFi events");
+
     // Print config pars
     EV_INFO << "Window Size for statistics: "
                    << par("statsWindowSize").intValue() << "s" << std::endl;
@@ -104,8 +106,7 @@ void SimpleWiFi::finish() {
     recordScalar("#bgJobsInterruptedByUser", bgJobsInterruptedByUser);
     if (bgTotalStarted > 0)
         recordScalar("#percentage of not successfully run bg jobs",
-                (userActiveBgRequested + bgJobsInterruptedByUser)
-                        / bgTotalStarted);
+                bgJobsInterruptedByUser / bgTotalStarted);
     else
         recordScalar("#percentage of not successfully run bg jobs", 0);
 }
@@ -142,6 +143,10 @@ void SimpleWiFi::handleMessage(cMessage *msg) {
         /*
          * Collect measurements / calculate diffs
          */
+
+        if (bgTotalStarted > 0){
+            percentageInterrupedWiFiEvents.record(double(bgJobsInterruptedByUser) / double(bgTotalStarted));
+        }
 
         // rm old messages from vector
         cleanupMessagesForStats();

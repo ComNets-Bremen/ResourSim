@@ -23,6 +23,7 @@
 #include "ResourceSignals.h"
 
 #include "SimpleWiFi.h" // for module handling, TODO: Check if double include or if it can be optimized?
+#include "BucketBattery.h" // for module handling, TODO: Check if double include or if it can be optimized?
 
 #include "DeviceStates.h"
 
@@ -67,7 +68,10 @@ private:
     bool isDeviceDead;
     bool isDeviceCharging;
 
+    bool screenIsOn = false;
+
     simtime_t lastChargingStopped = 0.0;
+    simtime_t lastChargingStateChange = 0.0;
 
     simtime_t startWiFiFreePeriod = 0;
     double lastChargingStoppedBatteryLevel = 0.0;
@@ -91,10 +95,16 @@ private:
     cOutVector wifiDecisionStatsUser;
     cOutVector wifiDecisionStatsUser24hrs;
 
+    cOutVector batteryLifetimeDecision;
+
+    cOutVector percentageCancelledEvents;
+
     long numberBackgroundEvents;
     long numberCancelledBackgroundEvents;
 
     cHistogram userEventHistogram;
+    cHistogram dischargingHistogram;
+    cHistogram startChargingBatteryPercentage;
 };
 
 }; // namespace

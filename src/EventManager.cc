@@ -60,6 +60,10 @@ void EventManager::initialize() {
     getSimulation()->getSystemModule()->subscribe(SCREEN_STATUS_UPDATE_SIGNAL,
             this);
 
+    // receive battery state changes
+    getSimulation()->getSystemModule()->subscribe(BATTERY_STATE_CHANGED_SIGNAL,
+            this);
+
     // Set decision window for screen status
     screenDecision.setWindowSize(par("decisionWindow").doubleValueInUnit("s"));
 
@@ -73,17 +77,34 @@ void EventManager::initialize() {
     wifiDecisionStatsUser.setName("WifiStatsUser");
     wifiDecisionStatsUser24hrs.setName("WifiStatsUser24hrs");
 
+    batteryLifetimeDecision.setName("Decision Battery usage");
+    percentageCancelledEvents.setName("Percentage cancelled Events");
+
     numberBackgroundEvents = 0;
     numberCancelledBackgroundEvents = 0;
 
     //cAutoRangeHistogramStrategy *strategy = new cAutoRangeHistogramStrategy();
     //cDefaultHistogramStrategy *strategy = new cDefaultHistogramStrategy();
 
-    cFixedRangeHistogramStrategy *strategy = new cFixedRangeHistogramStrategy(0, 24*60*60, 24*60*60/120);
+    cFixedRangeHistogramStrategy *strategy = new cFixedRangeHistogramStrategy(0,
+            24 * 60 * 60, 24 * 60 * 60 / 120);
 
     userEventHistogram.setName("Time between user events");
     userEventHistogram.setMode(cHistogram::MODE_DOUBLES);
     userEventHistogram.setStrategy(strategy);
+
+    cAutoRangeHistogramStrategy *batteryStrategy =
+            new cAutoRangeHistogramStrategy();
+    dischargingHistogram.setName("Time between charging events");
+    dischargingHistogram.setMode(cHistogram::MODE_DOUBLES);
+    dischargingHistogram.setStrategy(batteryStrategy);
+
+
+    cAutoRangeHistogramStrategy *batteryPercentageLeftStrategy =
+                new cAutoRangeHistogramStrategy();
+    startChargingBatteryPercentage.setName("Start charging percentage");
+    startChargingBatteryPercentage.setMode(cHistogram::MODE_DOUBLES);
+    startChargingBatteryPercentage.setStrategy(batteryPercentageLeftStrategy);
 }
 
 EventManager::~EventManager() {
@@ -107,6 +128,11 @@ EventManager::~EventManager() {
     SCREEN_STATUS_UPDATE_SIGNAL, this))
         getSimulation()->getSystemModule()->unsubscribe(
         SCREEN_STATUS_UPDATE_SIGNAL, this);
+
+    if (getSimulation()->getSystemModule()->isSubscribed(
+            BATTERY_STATE_CHANGED_SIGNAL, this))
+        getSimulation()->getSystemModule()->unsubscribe(
+                BATTERY_STATE_CHANGED_SIGNAL, this);
 
     // Cancel already scheduled events
     cancelAndDelete(sendSignal_calculateBatteryDiffsEvent);
@@ -157,13 +183,16 @@ void EventManager::handleMessage(cMessage *msg) {
         // Implement the background service scheduling here!
         numberBackgroundEvents++;
 
-        if (par("enableBackgroundOptimizations").boolValue()) {
+        if (par("enableBackgroundOptimizations").boolValue()) { // General switch regardin bg optimization
             backgroundEventMessage->setBackgroundEventCancelled(false);
-            if (!isDeviceCharging) { // Do not cancel events if we are charging
+            if (!isDeviceCharging ||        // Device is not charging
+                    (par("limitEventsWhileCharging").boolValue()
+                            && isDeviceCharging) // perform limitation if charging and device is charging
+                    ) { // Cancel events
 
-                // Do not send messages if battery is weak
+                // Do not send messages if battery is weak and it is not getting better
                 if (par("ignoreBackgroundEventsBatteryInconvenient").boolValue()
-                        && isDeviceCritical) {
+                        && isDeviceCritical && !isDeviceCharging) {
                     EV_INFO
                                    << "Ignoring background message: Device in inconvenient mode"
                                    << std::endl;
@@ -171,48 +200,61 @@ void EventManager::handleMessage(cMessage *msg) {
                     backgroundEventMessage->setBackgroundEventCancelled(true);
                 }
 
-                // Do not send messages if user is active
-                if (par("analyzeUserScreenActivity").boolValue()) {
-                    double correctionFactor =
-                            par("screenCorrectionFactor").doubleValue();
-                    if (screenDecision.getPercentageOfValue(true)
-                            > (screenDecision.getPercentageOfValue24Hrs(true)
-                                    * correctionFactor)) {
-                        // User was using the device more often compared to the 24hrs average
-                        EV_INFO << "Ignore background task: User is active!"
-                                       << std::endl;
 
-                        backgroundEventMessage->setBackgroundEventCancelled(
-                                true);
+                if (par("cancelIfScreenIsOn").boolValue() && screenIsOn){
+                    EV_INFO << "Cancel event: screen is on" << std::endl;
+                    backgroundEventMessage->setBackgroundEventCancelled(true);
+                }
+
+
+                // Do not send messages if user might be active
+                if (par("analyzeUserScreenActivity").boolValue()) {
+                    double correctionFactor = par("screenCorrectionFactor").doubleValue();
+                    if (screenDecision.getPercentageOfValue(true) > (screenDecision.getPercentageOfValue24Hrs(true) * correctionFactor)) {
+                        // User was using the device more often compared to the 24hrs average
+                        EV_INFO << "Ignore background task: User is active!" << std::endl;
+
+                        backgroundEventMessage->setBackgroundEventCancelled(true);
                     } // Drop message
                 }
 
-                // Do not send messages if battery might be drained
+                // Do not send messages if battery might be drained and it is not getting better
                 if (par("analyzeTimeToCharge").boolValue()) {
-                    if (timeBetweenChg.getLen()
-                            > par("analyzeTimeToChargeMinDataLen").intValue()) {
-                        simtime_t quantilTtc = timeBetweenChg.getQuantil(
-                                par("chargeDecisionQuantil").doubleValue());
-                        simtime_t runningOnBat = simTime()
-                                - lastChargingStopped;
+                    if ((timeBetweenChg.getLen() > par("analyzeTimeToChargeMinDataLen").intValue()) && !isDeviceCharging) {
+                        simtime_t quantilTtc = timeBetweenChg.getQuantil(par("chargeDecisionQuantil").doubleValue());
+                        simtime_t runningOnBat = simTime() - lastChargingStopped;
 
-                        double chgTimeWindowPercentage = runningOnBat
-                                / quantilTtc;
+                        double chgTimeWindowPercentage = runningOnBat / quantilTtc;
 
-                        EV_INFO << "Last charging was " << runningOnBat
-                                       << " seconds ago and we are at level "
-                                       << batteryLevel
-                                       << " and in average, we start charging with the "
-                                       << par("chargeDecisionQuantil").doubleValue()
-                                               * 100.0 << "% quantil after "
-                                       << quantilTtc
-                                       << "seconds. percentage of quantil: "
-                                       << chgTimeWindowPercentage
-                                       << " Battery level when we started discharging: "
-                                       << lastChargingStoppedBatteryLevel
-                                       << std::endl;
+                        double calculatedDischargeTime = runningOnBat.dbl() + (lastChargingStoppedBatteryLevel/ ((lastChargingStoppedBatteryLevel - batteryLevel) / runningOnBat));
+
+                        EV_INFO << "Last charging was " << runningOnBat << " seconds ago and we are at level " << batteryLevel << " and in average, we start charging with the " << par("chargeDecisionQuantil").doubleValue() * 100.0 << "% quantil after " << quantilTtc << "seconds. percentage of quantil: " << chgTimeWindowPercentage << " Battery level when we started discharging: " << lastChargingStoppedBatteryLevel << std::endl;
+
+                        EV_INFO << "######" << std::endl;
+                        EV_INFO << "lastChargingStoppedBatteryLevel=" << lastChargingStoppedBatteryLevel  << std::endl; // battery level when last charging stopped
+                        EV_INFO << "runningOnBat=" << runningOnBat << std::endl; // seconds since last charging stopped
+                        EV_INFO << "isDeviceCharging=" << isDeviceCharging << std::endl; // is device charging?
+                        EV_INFO << "batteryLevel=" << batteryLevel << std::endl; // the current battery level
+                        EV_INFO << "chargeDecisionQuantil=" << par("chargeDecisionQuantil").doubleValue() * 100.0 << std::endl; // Quantil we take for the decision
+                        EV_INFO << "quantilTtc=" << quantilTtc << std::endl; // The time value of the given quantil
+                        EV_INFO << "chgTimeWindowPercentage=" << chgTimeWindowPercentage << std::endl; // The percentage  we are in the current quantil
+                        EV_INFO << "Calculated discharging per hour:" << (lastChargingStoppedBatteryLevel - batteryLevel) / runningOnBat/60.0/60.0 << std::endl;
+                        EV_INFO << "calculatedDischargeTime=" << calculatedDischargeTime << std::endl;
+                        EV_INFO << "Avg battery level left=" << startChargingBatteryPercentage.getMean() << std::endl;
+                        EV_INFO << "*****" << std::endl;
 
                         // TODO: Handle according to battery level and time to charge
+                        if ((lastChargingStoppedBatteryLevel - batteryLevel) > 0.05 || runningOnBat > 240.0) { // Only perform optimization if we are discharging for a certain percentage or time
+                            // We need some percent of the battery drained to perform useful calculations. TODO: Param?
+                            EV_INFO << "decision: <1 okay, >1 bad:" << calculatedDischargeTime / quantilTtc << std::endl;
+                            batteryLifetimeDecision.record(calculatedDischargeTime / quantilTtc);
+
+                            if ((calculatedDischargeTime / quantilTtc) > 1) {
+                                // Cancel if forecast says: critical
+                                backgroundEventMessage->setBackgroundEventCancelled(true);
+                            }
+                        }
+
 
                     } else {
                         EV_INFO
@@ -225,8 +267,8 @@ void EventManager::handleMessage(cMessage *msg) {
                 if (backgroundEventMessage->getBackgroundEventCancelled()) {
                     numberCancelledBackgroundEvents++;
                 }
-            }
-        } // Enable optimizations
+            } // charging / not charging etc.
+        } // cancelled events by optimization
 
         // Forward to all nodes
         for (int i = 0; i < gateSize("out"); i++)
@@ -267,6 +309,9 @@ void EventManager::handleMessage(cMessage *msg) {
 
     } else if (msg == collectDecisionDatasetsEvent) {
         EV_INFO << "Plot statistics for decision making" << std::endl;
+
+        percentageCancelledEvents.record(double(numberCancelledBackgroundEvents)
+                / double(numberBackgroundEvents));
 
         screenDecisionStats.record(screenDecision.getPercentageOfValue(true));
         screenDecisionStats24hrs.record(
@@ -312,12 +357,30 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, bool b,
     } else if (signal == registerSignal(SCREEN_STATUS_UPDATE_SIGNAL)) {
         screenOffTimes.addDataset(b);
         screenDecision.addDataset(b);
+        screenIsOn = b;
         EV_INFO << "RX SCREEN STATUS MESSAGE " << b
                        << " Screen was occupied by user: "
                        << screenDecision.getPercentageOfValue(true)
                        << " Number of stored values: "
                        << screenOffTimes.getLen() << " Median: "
                        << screenOffTimes.getMedian() << std::endl;
+    } else if (signal == registerSignal(BATTERY_STATE_CHANGED_SIGNAL)) {
+        if (b) {
+            EV_INFO << "was discharging for "
+                           << (simTime() - lastChargingStateChange).dbl()
+                           << std::endl;
+            dischargingHistogram.collect(
+                    (simTime() - lastChargingStateChange).dbl());
+
+            BucketBattery *bucketBattery = check_and_cast<BucketBattery*>(src);
+
+            startChargingBatteryPercentage.collect(bucketBattery->getBatteryChargePercent());
+        } else {
+            EV_INFO << "was charging for "
+                           << (simTime() - lastChargingStateChange).dbl()
+                           << std::endl;
+        }
+        lastChargingStateChange = simTime();
     } else {
         EV_ERROR << "Received unhandled signal!" << std::endl;
     }
@@ -359,9 +422,10 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
         SimpleWiFi *simpleWiFi = check_and_cast<SimpleWiFi*>(src);
         switch (deviceState) {
         case DEVICE_STATE_OCCUPIED_USER:
-            if (startWiFiFreePeriod != 0){
+            if (startWiFiFreePeriod != 0) {
                 simtime_t lastFreePeriod = simTime() - startWiFiFreePeriod;
-                EV_INFO << "WiFi was not used by user for " << lastFreePeriod << "s" << std::endl;
+                EV_INFO << "WiFi was not used by user for " << lastFreePeriod
+                               << "s" << std::endl;
                 userEventHistogram.collect(lastFreePeriod.dbl());
 
                 // TODO add for histogram, ensure free was after user state
@@ -370,7 +434,8 @@ void EventManager::receiveSignal(cComponent *src, simsignal_t signal, long l,
             break;
         case DEVICE_STATE_FREE:
             // transition user -> Free
-            if (simpleWiFi->getPreviousDeviceState() == DEVICE_STATE_OCCUPIED_USER){
+            if (simpleWiFi->getPreviousDeviceState()
+                    == DEVICE_STATE_OCCUPIED_USER) {
                 EV_INFO << "Transition from user -> free" << std::endl;
                 startWiFiFreePeriod = simTime();
             }
@@ -415,6 +480,8 @@ void EventManager::finish() {
         }
     }
     userEventHistogram.recordAs("Time between user events");
+    dischargingHistogram.recordAs("Time between charging");
+    startChargingBatteryPercentage.recordAs("percentage left in battery");
 }
 
 }

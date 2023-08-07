@@ -37,7 +37,9 @@ simple EventManager
         volatile bool analyzeUserScreenActivity = default(false);
         volatile bool analyzeTimeToCharge = default(false);
         volatile double chargeDecisionQuantil = default(0.5); // median
-        volatile int analyzeTimeToChargeMinDataLen = default(10); // Minimum number of dataset to use this optimization technique
+        volatile int analyzeTimeToChargeMinDataLen = default(5); // Minimum number of dataset to use this optimization technique
+        volatile bool limitEventsWhileCharging = default(true); // Continue normal operation if the device is charging
+        volatile bool cancelIfScreenIsOn = default(true); // cancel if the screen is on 
         
         volatile double screenCorrectionFactor = default(1);
         

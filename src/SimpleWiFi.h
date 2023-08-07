@@ -89,6 +89,8 @@ private:
     cOutVector TotalRxBitinInterval;
     cOutVector TotalTxBitinInterval;
 
+    cOutVector percentageInterrupedWiFiEvents;
+
 //    cHistogram totalRxKbHist;
 //    cHistogram totalTxKbHist;
     /*
